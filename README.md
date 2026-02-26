@@ -1,74 +1,102 @@
 # Code Feedback Platform (MVP) - AI-Guided Logic Learning
 
-An EdTech coding platform that helps beginners build **core programming logic** by giving **human-friendly feedback** on their code-without relying on traditional compiler error dumps or “DSA-only” practice.
+An EdTech coding platform that helps beginners build **core programming logic** by giving **human-friendly feedback** on their code without relying on traditional compiler error dumps or DSA-only practice.
 
-Instead of confusing errors, the platform analyzes what the student wrote, explains **what’s wrong in simple language**, and guides them toward the correct logic.
+## Quick Start (Under 5 Minutes)
 
----
+### 1) Prerequisites
+- Node.js 20+
+- PostgreSQL running locally
 
-## Why this exists
+### 2) Install pnpm and dependencies
+```bash
+corepack enable
+corepack prepare pnpm@9 --activate
+pnpm install
+```
 
-Most beginner coding experiences fail at the same point:
+### 3) Configure environment variables
+```bash
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env.local
+```
 
-- Students write code → compiler throws cryptic errors → student gets stuck
-- They copy-paste errors into LLMs → they “fix” code without understanding
-- Platforms focus heavily on DSA + testcases, not logic thinking
+### 4) Run database migration and seed
+```bash
+pnpm --filter backend prisma:migrate
+pnpm --filter backend prisma:seed
+```
 
-This project focuses on **learning-by-reasoning**:
-- What was the student trying to do?
-- What did they miss?
-- How can we explain the mistake in beginner language?
+### 5) Start both apps
+```bash
+pnpm dev
+```
 
----
+### 6) Verify
+- Frontend: http://localhost:3000
+- Backend health: http://localhost:4000/health
+- Backend health with DB check: http://localhost:4000/health?checkDb=true
 
-## MVP Scope (Current)
+## Monorepo Layout
 
-### ✅ What the MVP does
-- Accepts student code (and optionally: question prompt + expected approach)
-- Uses AI to analyze code logic and common mistakes
-- Returns feedback in **simple language**:
-  - what’s wrong
-  - why it’s wrong
-  - what to change next
-  - examples / hints (without full spoon-feeding)
+```text
+.
+├── backend/
+│   ├── prisma/
+│   └── src/
+├── frontend/
+│   └── src/app/
+└── package.json
+```
 
-### 🚫 What the MVP does NOT do (yet)
-- No full compiler + runtime evaluation with 100–1000 test cases
-- No heavy judge system like typical coding platforms
-- No fully trained in-house model (we use external LLMs initially)
+## Backend Notes
+- API framework: Fastify
+- Validation: Zod
+- ORM: Prisma
+- DB health check endpoint: `GET /health?checkDb=true`
 
----
+## Prisma MVP Schema
+Current MVP models:
+- `users`
+- `problems`
+- `submissions`
+- `ai_feedback`
+- `concept_mastery`
+- `reflections`
+- `events`
 
-## Product Vision (Where this goes)
+> TODO: extend schema with `organizations`, `tracks`, `modules`, and `lessons`.
 
-The long-term platform builds a learning loop:
+## Common Scripts
 
-1. Student writes code  
-2. AI gives beginner-friendly feedback  
-3. We collect anonymized improvement data (with consent)  
-4. We use those patterns to train/fine-tune our own model  
-5. Over time, we move from external LLM dependency → to our own specialized model
+### Root
+- `pnpm dev`: Run frontend + backend concurrently
+- `pnpm build`: Build all packages
+- `pnpm start`: Start all packages with start scripts
+- `pnpm lint`: Lint all packages and root config
 
-The goal is a model that’s excellent at:
-- beginner mistakes
-- reasoning gaps
-- logic correction
-- “explain like I’m new” feedback
+### Backend
+- `pnpm --filter backend dev`
+- `pnpm --filter backend build`
+- `pnpm --filter backend prisma:generate`
+- `pnpm --filter backend prisma:migrate`
+- `pnpm --filter backend prisma:seed`
 
----
+### Frontend
+- `pnpm --filter frontend dev`
+- `pnpm --filter frontend build`
 
-## Architecture (High Level)
+## Troubleshooting
+- **`pnpm: command not found`**: run `corepack enable` and `corepack prepare pnpm@9 --activate`.
+- **Database connection errors**: verify `DATABASE_URL` in `backend/.env` and ensure local Postgres is running.
+- **Migration permission errors**: ensure the database user in `DATABASE_URL` has schema create/alter privileges.
 
-**Frontend**
-- Code editor experience (input + feedback view)
-- Lesson/task UI (prompt, hints, attempts, progress)
+## Product Vision (Context)
 
-**Backend / API**
-- Auth + user progress (MVP can start lightweight)
-- Stores attempts, feedback, and lesson state
-- Calls AI analysis service
+The platform aims to improve beginner coding outcomes with a feedback loop:
+1. Student writes code
+2. AI gives beginner-friendly feedback
+3. Improvement patterns are tracked (with consent)
+4. Feedback quality improves over time
 
-**AI Feedback Service**
-- Prompting + guardrails for safe, helpful feedback
-- Output formatting (structured JSON or markdown)
-- Feedback quality checks (avoid hallucinations, keep it beginner-friendly)
+This repository currently scaffolds the monorepo foundation only.
