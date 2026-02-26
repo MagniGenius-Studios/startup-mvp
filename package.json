@@ -1,0 +1,23 @@
+{
+  "name": "startup-mvp",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev": "concurrently \"pnpm --filter backend dev\" \"pnpm --filter frontend dev\"",
+    "build": "pnpm -r --if-present build",
+    "start": "pnpm -r --if-present start",
+    "lint": "pnpm -r --if-present lint && eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.20.0",
+    "concurrently": "^9.1.2",
+    "eslint": "^9.20.1",
+    "globals": "^16.0.0",
+    "prettier": "^3.5.1",
+    "typescript": "^5.8.2",
+    "typescript-eslint": "^8.24.1"
+  }
+}
