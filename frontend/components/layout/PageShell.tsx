@@ -1,10 +1,12 @@
 import { PropsWithChildren } from 'react'
 
+type Width = 'sm' | 'md' | 'lg'
+
 interface PageShellProps extends PropsWithChildren {
-  width?: 'sm' | 'md' | 'lg'
+  width?: Width
 }
 
-const widthMap: Record<PageShellProps['width'], string> = {
+const widthMap: Record<Width, string> = {
   sm: 'max-w-2xl',
   md: 'max-w-4xl',
   lg: 'max-w-6xl',

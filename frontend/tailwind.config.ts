@@ -9,8 +9,8 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        display: ['var(--font-display)', 'ui-sans-serif', 'system-ui'],
-        body: ['var(--font-body)', 'ui-sans-serif', 'system-ui'],
+        display: ['"Inter"', 'ui-sans-serif', 'system-ui'],
+        body: ['"Inter"', 'ui-sans-serif', 'system-ui'],
       },
       colors: {
         midnight: '#0f172a',
