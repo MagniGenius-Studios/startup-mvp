@@ -7,116 +7,322 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// TODO: Extend with organizations, tracks, modules, and lessons models in the next milestone.
-
 enum SubmissionStatus {
-  PENDING
-  REVIEWED
-  ACCEPTED
+  DRAFT
+  SUBMITTED
+  ANALYZING
+  COMPLETED
+  ERROR
+}
 
-  @@map("submission_status")
+enum FeedbackTier {
+  L1
+  L2
+  L3
+  L4
+}
+
+enum UserRole {
+  ADMIN
+  INSTRUCTOR
+  LEARNER
+}
+
+enum LessonStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+}
+
+model Organization {
+  id               String           @id @default(uuid())
+  name             String
+  slug             String           @unique
+  description      String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  users            User[]
+  tracks           Track[]
+  promptTemplates  PromptTemplate[]
+  events           Event[]
+  enrollments      Enrollment[]
+  concepts         Concept[]
+
+  @@index([slug])
 }
 
 model User {
-  id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email          String           @unique
-  name           String?
-  createdAt      DateTime         @default(now()) @db.Timestamptz(6) @map("created_at")
-  updatedAt      DateTime         @updatedAt @db.Timestamptz(6) @map("updated_at")
-  submissions    Submission[]
-  conceptMastery ConceptMastery[]
-  reflections    Reflection[]
-  events         Event[]
+  id              String            @id @default(uuid())
+  email           String            @unique
+  name            String?
+  passwordHash    String?
+  role            UserRole          @default(LEARNER)
+  organizationId  String?
+  organization    Organization?     @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  enrollments     Enrollment[]
+  submissions     Submission[]
+  lessonProgress  LessonProgress[]
+  conceptMastery  ConceptMastery[]
+  reflections     Reflection[]
+  events          Event[]           @relation("UserEvents")
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 
-  @@map("users")
+  @@index([organizationId])
+}
+
+model Track {
+  id              String           @id @default(uuid())
+  organizationId  String
+  title           String
+  description     String?
+  isPublished     Boolean          @default(false)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  modules         Module[]
+  enrollments     Enrollment[]
+  promptTemplates PromptTemplate[]
+
+  @@index([organizationId])
+}
+
+model Module {
+  id          String    @id @default(uuid())
+  trackId     String
+  title       String
+  description String?
+  position    Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  track       Track     @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  lessons     Lesson[]
+
+  @@index([trackId])
+  @@index([trackId, position])
+}
+
+model Lesson {
+  id           String           @id @default(uuid())
+  moduleId     String
+  title        String
+  description  String?
+  content      String?
+  position     Int              @default(0)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  module       Module           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  problems     Problem[]
+  progress     LessonProgress[]
+  reflections  Reflection[]
+
+  @@index([moduleId])
+  @@index([moduleId, position])
 }
 
 model Problem {
-  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  slug        String       @unique
-  title       String
-  description String?
-  difficulty  String?      @default("beginner")
-  createdAt   DateTime     @default(now()) @db.Timestamptz(6) @map("created_at")
-  updatedAt   DateTime     @updatedAt @db.Timestamptz(6) @map("updated_at")
-  submissions Submission[]
+  id                String           @id @default(uuid())
+  lessonId          String
+  title             String
+  description       String?
+  starterCode       String?
+  solutionReference String?
+  difficulty        String?
+  position          Int              @default(0)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  lesson            Lesson           @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  submissions       Submission[]
+  concepts          ProblemConcept[]
+  reflections       Reflection[]
 
-  @@map("problems")
+  @@index([lessonId])
+  @@index([lessonId, position])
+}
+
+model Concept {
+  id             String              @id @default(uuid())
+  name           String
+  slug           String              @unique
+  description    String?
+  organizationId String?
+  organization   Organization?       @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  problemLinks   ProblemConcept[]
+  mastery        ConceptMastery[]
+  dependencies   ConceptDependency[] @relation("ConceptDependencies")
+  prerequisites  ConceptDependency[] @relation("ConceptPrerequisites")
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@index([organizationId])
+}
+
+model ProblemConcept {
+  id         String   @id @default(uuid())
+  problemId  String
+  conceptId  String
+  problem    Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  concept    Concept  @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([problemId, conceptId])
+  @@index([conceptId])
+  @@index([problemId])
+}
+
+model ConceptDependency {
+  id           String   @id @default(uuid())
+  conceptId    String
+  dependsOnId  String
+  concept      Concept  @relation("ConceptDependencies", fields: [conceptId], references: [id], onDelete: Cascade)
+  dependsOn    Concept  @relation("ConceptPrerequisites", fields: [dependsOnId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([conceptId, dependsOnId])
+  @@index([dependsOnId])
 }
 
 model Submission {
-  id         String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId     String           @map("user_id") @db.Uuid
-  problemId  String           @map("problem_id") @db.Uuid
-  code       String
-  language   String           @default("javascript")
-  status     SubmissionStatus @default(PENDING)
-  score      Float?
-  createdAt  DateTime         @default(now()) @db.Timestamptz(6) @map("created_at")
-  updatedAt  DateTime         @updatedAt @db.Timestamptz(6) @map("updated_at")
-  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  problem    Problem          @relation(fields: [problemId], references: [id], onDelete: Cascade)
-  aiFeedback AiFeedback[]
-  reflections Reflection[]
+  id           String            @id @default(uuid())
+  userId       String
+  problemId    String
+  status       SubmissionStatus  @default(DRAFT)
+  code         String
+  language     String
+  runtimeMs    Int?
+  memoryBytes  Int?
+  score        Float?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problem      Problem           @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  feedback     AiFeedback[]
+  reflections  Reflection[]
 
   @@index([userId])
   @@index([problemId])
-  @@map("submissions")
+  @@index([status])
 }
 
 model AiFeedback {
-  id           String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  submissionId String      @map("submission_id") @db.Uuid
-  feedbackText String      @map("feedback_text")
-  model        String?
-  createdAt    DateTime    @default(now()) @db.Timestamptz(6) @map("created_at")
-  updatedAt    DateTime    @updatedAt @db.Timestamptz(6) @map("updated_at")
-  submission   Submission  @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  id             String       @id @default(uuid())
+  submissionId   String
+  tier           FeedbackTier
+  summary        String
+  recommendations String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  submission     Submission   @relation(fields: [submissionId], references: [id], onDelete: Cascade)
 
   @@index([submissionId])
-  @@map("ai_feedback")
+  @@index([tier])
+}
+
+model Enrollment {
+  id              String            @id @default(uuid())
+  userId          String
+  trackId         String
+  organizationId  String
+  status          EnrollmentStatus  @default(ACTIVE)
+  progress        Decimal?          @db.Decimal(5, 2)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  track           Track             @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  organization    Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, trackId])
+  @@index([organizationId])
+}
+
+model LessonProgress {
+  id             String       @id @default(uuid())
+  userId         String
+  lessonId       String
+  status         LessonStatus @default(NOT_STARTED)
+  progress       Int          @default(0)
+  lastVisitedAt  DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson         Lesson       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@index([lessonId])
 }
 
 model ConceptMastery {
-  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId         String    @map("user_id") @db.Uuid
-  concept        String
-  masteryScore   Float     @default(0) @map("mastery_score")
-  lastAssessedAt DateTime? @db.Timestamptz(6) @map("last_assessed_at")
-  createdAt      DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
-  updatedAt      DateTime  @updatedAt @db.Timestamptz(6) @map("updated_at")
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            String    @id @default(uuid())
+  userId        String
+  conceptId     String
+  proficiency   Int       @default(0)
+  lastReviewedAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  concept       Concept   @relation(fields: [conceptId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, concept])
-  @@index([userId])
-  @@map("concept_mastery")
+  @@unique([userId, conceptId])
+  @@index([conceptId])
 }
 
 model Reflection {
-  id           String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId       String      @map("user_id") @db.Uuid
-  submissionId String?     @map("submission_id") @db.Uuid
+  id           String      @id @default(uuid())
+  userId       String
+  lessonId     String?
+  problemId    String?
+  submissionId String?
   content      String
-  createdAt    DateTime    @default(now()) @db.Timestamptz(6) @map("created_at")
-  updatedAt    DateTime    @updatedAt @db.Timestamptz(6) @map("updated_at")
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
   user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson       Lesson?     @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  problem      Problem?    @relation(fields: [problemId], references: [id], onDelete: SetNull)
   submission   Submission? @relation(fields: [submissionId], references: [id], onDelete: SetNull)
 
   @@index([userId])
+  @@index([lessonId])
   @@index([submissionId])
-  @@map("reflections")
 }
 
 model Event {
-  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId    String?   @map("user_id") @db.Uuid
-  eventType String    @map("event_type")
-  payload   Json?
-  createdAt DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
-  updatedAt DateTime  @updatedAt @db.Timestamptz(6) @map("updated_at")
-  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  id              String        @id @default(uuid())
+  type            String
+  actorId         String?
+  organizationId  String?
+  metadata        Json?
+  occurredAt      DateTime      @default(now())
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  actor           User?         @relation("UserEvents", fields: [actorId], references: [id], onDelete: SetNull)
+  organization    Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
 
-  @@index([userId])
-  @@index([eventType])
-  @@map("events")
+  @@index([type])
+  @@index([actorId])
+  @@index([organizationId])
+}
+
+model PromptTemplate {
+  id              String        @id @default(uuid())
+  organizationId  String?
+  trackId         String?
+  name            String
+  description     String?       @db.Text
+  template        String        @db.Text
+  variables       String[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  organization    Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  track           Track?        @relation(fields: [trackId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([trackId])
 }

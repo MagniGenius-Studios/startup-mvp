@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  background: radial-gradient(circle at 20% 20%, rgba(52, 211, 153, 0.12), transparent 35%),
+    radial-gradient(circle at 80% 0%, rgba(14, 165, 233, 0.15), transparent 30%),
+    #0b1224;
+  color: #e2e8f0;
+}
+
+body {
+  font-family: theme('fontFamily.body');
+  min-height: 100vh;
+  background: radial-gradient(circle at 20% 20%, rgba(52, 211, 153, 0.12), transparent 35%),
+    radial-gradient(circle at 80% 0%, rgba(14, 165, 233, 0.15), transparent 30%),
+    #0b1224;
+}
+
+main {
+  min-height: 100vh;
+}
+
+.button-primary {
+  @apply inline-flex items-center justify-center rounded-full bg-sky px-5 py-3 text-sm font-semibold text-ink shadow-soft transition hover:-translate-y-0.5 hover:shadow-lg; 
+}
+
+.card {
+  @apply rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur;
+}
