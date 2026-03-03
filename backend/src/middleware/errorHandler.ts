@@ -1,23 +1,35 @@
 import { NextFunction, Request, Response } from 'express';
+import { ZodError } from 'zod';
 
-interface ApiError extends Error {
-  statusCode?: number;
-}
+import { AppError } from '@utils/AppError';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const errorHandler = (
-  err: ApiError,
+  err: Error,
   _req: Request,
   res: Response,
   _next: NextFunction,
 ) => {
   void _next;
-  const statusCode = err.statusCode || 500;
-  const message = err.message || 'Internal server error';
 
-  res.status(statusCode).json({
-    error: {
-      message,
-    },
+  // Handle custom application errors
+  if (err instanceof AppError) {
+    return res.status(err.statusCode).json({
+      message: err.message,
+    });
+  }
+
+  // Handle Zod validation errors
+  if (err instanceof ZodError) {
+    return res.status(400).json({
+      message: 'Validation failed',
+      errors: err.flatten().fieldErrors,
+    });
+  }
+
+  // Fallback for unexpected errors — never leak internals
+  console.error('Unhandled error:', err);
+  return res.status(500).json({
+    message: 'Internal server error',
   });
 };

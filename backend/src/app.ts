@@ -2,6 +2,7 @@ import { env } from '@config/env';
 import { errorHandler } from '@middleware/errorHandler';
 import { notFoundHandler } from '@middleware/notFound';
 import routes from '@routes/index';
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express, { json } from 'express';
 import helmet from 'helmet';
@@ -11,8 +12,14 @@ export const createApp = () => {
   const app = express();
 
   app.use(helmet());
-  app.use(cors({ origin: '*', credentials: true }));
+  app.use(
+    cors({
+      origin: process.env.FRONTEND_URL || /^http:\/\/localhost:\d+$/,
+      credentials: true,
+    }),
+  );
   app.use(json({ limit: '1mb' }));
+  app.use(cookieParser());
   app.use(morgan('combined'));
 
   app.use('/api', routes);

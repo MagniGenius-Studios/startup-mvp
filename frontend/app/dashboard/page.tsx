@@ -1,6 +1,10 @@
+'use client'
+
 import Link from 'next/link'
+import { useEffect } from 'react'
 
 import { PageShell } from '@/components/layout/PageShell'
+import { useAuth } from '@/lib/auth'
 
 const mockStats = [
   { label: 'Active tracks', value: '3' },
@@ -9,19 +13,59 @@ const mockStats = [
 ]
 
 export default function DashboardPage() {
+  const { user, loading, logout } = useAuth()
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!loading && !user) {
+      window.location.href = '/login'
+    }
+  }, [user, loading])
+
+  if (loading) {
+    return (
+      <PageShell>
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-sky border-t-transparent" />
+        </div>
+      </PageShell>
+    )
+  }
+
+  if (!user) {
+    return null
+  }
+
   return (
     <PageShell>
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Dashboard</p>
-          <h1 className="text-3xl font-display text-white">Learning overview</h1>
+          <h1 className="text-3xl font-display text-white">
+            Welcome, {user.name || 'Learner'} 👋
+          </h1>
         </div>
-        <Link
-          href="/"
-          className="rounded-full border border-white/20 px-4 py-2 text-sm text-slate-100 transition hover:border-white/40"
-        >
-          Back to landing
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/"
+            className="rounded-full border border-white/20 px-4 py-2 text-sm text-slate-100 transition hover:border-white/40"
+          >
+            Home
+          </Link>
+          <button
+            onClick={() => void logout()}
+            className="rounded-full border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-300 transition hover:bg-red-500/20"
+          >
+            Sign out
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-6 rounded-xl border border-white/10 bg-white/5 px-5 py-4 backdrop-blur">
+        <p className="text-sm text-slate-300">
+          Signed in as <span className="font-medium text-white">{user.email}</span>
+          <span className="ml-2 rounded-full bg-sky/20 px-2 py-0.5 text-xs text-sky">{user.role}</span>
+        </p>
       </div>
 
       <section className="mt-10 grid gap-4 md:grid-cols-3">
