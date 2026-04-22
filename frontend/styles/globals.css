@@ -9,8 +9,8 @@
 body {
   font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
   min-height: 100vh;
-  background: #0b1120;
-  color: #e2e8f0;
+  background: #0c0f1a;
+  color: #f1f5f9;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -19,29 +19,111 @@ main {
   min-height: 100vh;
 }
 
-/* Utility classes for the design system */
+/* ─── Buttons ──────────────────────────────────────── */
+
 .button-primary {
-  @apply inline-flex items-center justify-center rounded-lg bg-[#0ea5e9] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0ea5e9]/90 hover:shadow-lg hover:shadow-[#0ea5e9]/20 hover:-translate-y-0.5;
+  @apply inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-white transition-all duration-200;
 }
+.button-primary:hover {
+  @apply bg-accent-dim shadow-glow -translate-y-0.5;
+}
+
+.button-secondary {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-surface-2 px-5 py-2.5 text-sm font-medium text-text-secondary transition-all duration-200;
+}
+.button-secondary:hover {
+  @apply border-white/20 bg-surface-3 text-white;
+}
+
+.button-ghost {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm text-text-secondary transition-all duration-200;
+}
+.button-ghost:hover {
+  @apply bg-white/5 text-white;
+}
+
+/* ─── Cards ────────────────────────────────────────── */
 
 .card {
-  @apply rounded-xl border border-slate-800 bg-[#111827] p-6;
+  @apply rounded-2xl border border-white/[0.06] bg-surface-1 p-6 shadow-card;
 }
 
-/* Custom scrollbar */
+.card-glass {
+  @apply rounded-2xl border border-white/[0.08] bg-surface-1/80 p-6 shadow-card backdrop-blur-sm;
+}
+
+.card-interactive {
+  @apply card cursor-pointer transition-all duration-200;
+}
+.card-interactive:hover {
+  @apply border-accent/20 bg-surface-2 shadow-glow -translate-y-0.5;
+}
+
+/* ─── Badges ───────────────────────────────────────── */
+
+.badge {
+  @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold tracking-wide;
+}
+
+.badge-mastered {
+  @apply badge border border-emerald-500/20 bg-emerald-500/10 text-emerald-400;
+}
+
+.badge-learning {
+  @apply badge border border-amber-400/20 bg-amber-400/10 text-amber-300;
+}
+
+.badge-new {
+  @apply badge border border-white/10 bg-white/5 text-text-muted;
+}
+
+/* ─── Progress bars ────────────────────────────────── */
+
+.progress-track {
+  @apply h-1.5 w-full overflow-hidden rounded-full bg-surface-3;
+}
+
+.progress-fill {
+  @apply h-full rounded-full bg-accent transition-all duration-500;
+}
+
+.progress-fill-success {
+  @apply h-full rounded-full bg-success transition-all duration-500;
+}
+
+/* ─── Utilities ────────────────────────────────────── */
+
+.text-gradient {
+  @apply bg-gradient-to-r from-accent-light via-accent to-accent-dim bg-clip-text text-transparent;
+}
+
+/* Smooth all transitions globally */
+*, *::before, *::after {
+  transition-property: color, background-color, border-color, box-shadow, opacity, transform;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+/* Exclude transitions from elements that need instant response */
+input, textarea, [contenteditable], .monaco-editor *, .no-transition {
+  transition: none !important;
+}
+
+/* ─── Scrollbar ────────────────────────────────────── */
+
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0b1120;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
+  background: #1e2440;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #2e3650;
 }

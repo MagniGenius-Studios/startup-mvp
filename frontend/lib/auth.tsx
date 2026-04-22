@@ -11,7 +11,7 @@ import {
     useState,
 } from 'react'
 
-import { api } from '@/lib/api'
+import { api, UNAUTHORIZED_EVENT } from '@/lib/api'
 
 interface User {
     id: string
@@ -50,6 +50,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         void checkAuth()
     }, [])
+
+    // Handle global unauthorized events (e.g., expired token)
+    useEffect(() => {
+        const handleUnauthorized = () => {
+            setUser(null)
+            setLoading(false)
+            router.push('/login')
+        }
+
+        window.addEventListener(UNAUTHORIZED_EVENT, handleUnauthorized)
+        return () => window.removeEventListener(UNAUTHORIZED_EVENT, handleUnauthorized)
+    }, [router])
 
     const login = useCallback(
         async (email: string, password: string) => {

@@ -15,13 +15,6 @@ enum SubmissionStatus {
   ERROR
 }
 
-enum FeedbackTier {
-  L1
-  L2
-  L3
-  L4
-}
-
 enum UserRole {
   ADMIN
   INSTRUCTOR
@@ -41,38 +34,40 @@ enum EnrollmentStatus {
 }
 
 model Organization {
-  id               String           @id @default(uuid())
-  name             String
-  slug             String           @unique
-  description      String?
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-  users            User[]
-  tracks           Track[]
-  promptTemplates  PromptTemplate[]
-  events           Event[]
-  enrollments      Enrollment[]
-  concepts         Concept[]
+  id              String           @id @default(uuid())
+  name            String
+  slug            String           @unique
+  description     String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  users           User[]
+  tracks          Track[]
+  promptTemplates PromptTemplate[]
+  events          Event[]
+  enrollments     Enrollment[]
+  concepts        Concept[]
 
   @@index([slug])
 }
 
 model User {
-  id              String            @id @default(uuid())
-  email           String            @unique
-  name            String?
-  passwordHash    String?
-  role            UserRole          @default(LEARNER)
-  organizationId  String?
-  organization    Organization?     @relation(fields: [organizationId], references: [id], onDelete: SetNull)
-  enrollments     Enrollment[]
-  submissions     Submission[]
-  lessonProgress  LessonProgress[]
-  conceptMastery  ConceptMastery[]
-  reflections     Reflection[]
-  events          Event[]           @relation("UserEvents")
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  id             String           @id @default(uuid())
+  email          String           @unique
+  name           String?
+  passwordHash   String?
+  role           UserRole         @default(LEARNER)
+  organizationId String?
+  organization   Organization?    @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  enrollments    Enrollment[]
+  submissions    Submission[]
+  problemProgress ProblemProgress[]
+  lessonProgress LessonProgress[]
+  conceptMastery ConceptMastery[]
+  reflections    Reflection[]
+  events         Event[]          @relation("UserEvents")
+  streak         UserStreak?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 
   @@index([organizationId])
 }
@@ -94,14 +89,14 @@ model Track {
 }
 
 model Module {
-  id          String    @id @default(uuid())
+  id          String   @id @default(uuid())
   trackId     String
   title       String
   description String?
-  position    Int       @default(0)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  track       Track     @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  position    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  track       Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
   lessons     Lesson[]
 
   @@index([trackId])
@@ -109,41 +104,73 @@ model Module {
 }
 
 model Lesson {
-  id           String           @id @default(uuid())
-  moduleId     String
-  title        String
-  description  String?
-  content      String?
-  position     Int              @default(0)
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
-  module       Module           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  problems     Problem[]
-  progress     LessonProgress[]
-  reflections  Reflection[]
+  id          String           @id @default(uuid())
+  moduleId    String
+  title       String
+  description String?
+  content     String?
+  position    Int              @default(0)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  module      Module           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  problems    Problem[]
+  progress    LessonProgress[]
+  reflections Reflection[]
 
   @@index([moduleId])
   @@index([moduleId, position])
 }
 
+model Language {
+  id         String     @id @default(uuid())
+  name       String     @unique
+  categories Category[]
+  problems   Problem[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+}
+
+model Category {
+  id         String    @id @default(uuid())
+  name       String
+  languageId String
+  language   Language  @relation(fields: [languageId], references: [id], onDelete: Cascade)
+  problems   Problem[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@unique([languageId, name])
+  @@index([languageId])
+}
+
 model Problem {
   id                String           @id @default(uuid())
   lessonId          String
+  languageId        String
+  categoryId        String
   title             String
   description       String?
   starterCode       String?
+  solutionCode      String
   solutionReference String?
+  expectedOutput    String?
   difficulty        String?
   position          Int              @default(0)
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
   lesson            Lesson           @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  language          Language         @relation(fields: [languageId], references: [id])
+  category          Category         @relation(fields: [categoryId], references: [id])
   submissions       Submission[]
+  progressRecords   ProblemProgress[]
   concepts          ProblemConcept[]
   reflections       Reflection[]
 
   @@index([lessonId])
+  @@index([languageId])
+  @@index([categoryId])
   @@index([lessonId, position])
+  @@index([categoryId, position])
 }
 
 model Concept {
@@ -164,13 +191,13 @@ model Concept {
 }
 
 model ProblemConcept {
-  id         String   @id @default(uuid())
-  problemId  String
-  conceptId  String
-  problem    Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
-  concept    Concept  @relation(fields: [conceptId], references: [id], onDelete: Cascade)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id        String   @id @default(uuid())
+  problemId String
+  conceptId String
+  problem   Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  concept   Concept  @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([problemId, conceptId])
   @@index([conceptId])
@@ -178,97 +205,118 @@ model ProblemConcept {
 }
 
 model ConceptDependency {
-  id           String   @id @default(uuid())
-  conceptId    String
-  dependsOnId  String
-  concept      Concept  @relation("ConceptDependencies", fields: [conceptId], references: [id], onDelete: Cascade)
-  dependsOn    Concept  @relation("ConceptPrerequisites", fields: [dependsOnId], references: [id], onDelete: Cascade)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          String   @id @default(uuid())
+  conceptId   String
+  dependsOnId String
+  concept     Concept  @relation("ConceptDependencies", fields: [conceptId], references: [id], onDelete: Cascade)
+  dependsOn   Concept  @relation("ConceptPrerequisites", fields: [dependsOnId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@unique([conceptId, dependsOnId])
   @@index([dependsOnId])
 }
 
 model Submission {
-  id           String            @id @default(uuid())
-  userId       String
-  problemId    String
-  status       SubmissionStatus  @default(DRAFT)
-  code         String
-  language     String
-  runtimeMs    Int?
-  memoryBytes  Int?
-  score        Float?
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  problem      Problem           @relation(fields: [problemId], references: [id], onDelete: Cascade)
-  feedback     AiFeedback[]
-  reflections  Reflection[]
+  id          String           @id @default(uuid())
+  userId      String
+  problemId   String
+  status      SubmissionStatus @default(DRAFT)
+  code        String
+  language    String
+  runtimeMs   Int?
+  memoryBytes Int?
+  score       Float?
+  isCorrect   Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problem     Problem          @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  feedback    AiFeedback[]
+  reflections Reflection[]
 
   @@index([userId])
   @@index([problemId])
   @@index([status])
+  @@index([userId, problemId, createdAt])
+}
+
+model ProblemProgress {
+  id        String   @id @default(uuid())
+  userId    String
+  problemId String
+  status    String
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problem   Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, problemId])
+  @@index([userId, status])
 }
 
 model AiFeedback {
-  id             String       @id @default(uuid())
-  submissionId   String
-  tier           FeedbackTier
-  summary        String
-  recommendations String?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  submission     Submission   @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  id           String     @id @default(uuid())
+  submissionId String
+  mistake      String
+  concept      String
+  improvement  String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
 
   @@index([submissionId])
-  @@index([tier])
+}
+
+model UserStreak {
+  userId     String   @id
+  current    Int      @default(0)
+  lastActive DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Enrollment {
-  id              String            @id @default(uuid())
-  userId          String
-  trackId         String
-  organizationId  String
-  status          EnrollmentStatus  @default(ACTIVE)
-  progress        Decimal?          @db.Decimal(5, 2)
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  track           Track             @relation(fields: [trackId], references: [id], onDelete: Cascade)
-  organization    Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  id             String           @id @default(uuid())
+  userId         String
+  trackId        String
+  organizationId String
+  status         EnrollmentStatus @default(ACTIVE)
+  progress       Decimal?         @db.Decimal(5, 2)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  track          Track            @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@unique([userId, trackId])
   @@index([organizationId])
 }
 
 model LessonProgress {
-  id             String       @id @default(uuid())
-  userId         String
-  lessonId       String
-  status         LessonStatus @default(NOT_STARTED)
-  progress       Int          @default(0)
-  lastVisitedAt  DateTime?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lesson         Lesson       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  id            String       @id @default(uuid())
+  userId        String
+  lessonId      String
+  status        LessonStatus @default(NOT_STARTED)
+  progress      Int          @default(0)
+  lastVisitedAt DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson        Lesson       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 
   @@unique([userId, lessonId])
   @@index([lessonId])
 }
 
 model ConceptMastery {
-  id            String    @id @default(uuid())
-  userId        String
-  conceptId     String
-  proficiency   Int       @default(0)
+  id             String    @id @default(uuid())
+  userId         String
+  conceptId      String
+  proficiency    Int       @default(0)
   lastReviewedAt DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  concept       Concept   @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  concept        Concept   @relation(fields: [conceptId], references: [id], onDelete: Cascade)
 
   @@unique([userId, conceptId])
   @@index([conceptId])
@@ -294,16 +342,16 @@ model Reflection {
 }
 
 model Event {
-  id              String        @id @default(uuid())
-  type            String
-  actorId         String?
-  organizationId  String?
-  metadata        Json?
-  occurredAt      DateTime      @default(now())
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  actor           User?         @relation("UserEvents", fields: [actorId], references: [id], onDelete: SetNull)
-  organization    Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  id             String        @id @default(uuid())
+  type           String
+  actorId        String?
+  organizationId String?
+  metadata       Json?
+  occurredAt     DateTime      @default(now())
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  actor          User?         @relation("UserEvents", fields: [actorId], references: [id], onDelete: SetNull)
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
 
   @@index([type])
   @@index([actorId])
@@ -311,17 +359,17 @@ model Event {
 }
 
 model PromptTemplate {
-  id              String        @id @default(uuid())
-  organizationId  String?
-  trackId         String?
-  name            String
-  description     String?       @db.Text
-  template        String        @db.Text
-  variables       String[]
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  organization    Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
-  track           Track?        @relation(fields: [trackId], references: [id], onDelete: SetNull)
+  id             String        @id @default(uuid())
+  organizationId String?
+  trackId        String?
+  name           String
+  description    String?       @db.Text
+  template       String        @db.Text
+  variables      String[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  track          Track?        @relation(fields: [trackId], references: [id], onDelete: SetNull)
 
   @@index([organizationId])
   @@index([trackId])

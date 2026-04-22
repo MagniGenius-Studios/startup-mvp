@@ -1,10 +1,8 @@
-import { NextFunction, Request, Response } from 'express';
-
+import type { UserDto } from '@services/auth.service';
 import { getUserById } from '@services/auth.service';
 import { AppError } from '@utils/AppError';
 import { verifyToken } from '@utils/jwt';
-
-import type { UserDto } from '@services/auth.service';
+import { NextFunction, Request, Response } from 'express';
 
 // Extend the Express Request type to carry the authenticated user
 declare global {
@@ -32,7 +30,7 @@ export const authenticate = async (
         }
 
         if (!token) {
-            throw new AppError('Authentication required', 401);
+            throw new AppError('Unauthorized', 401);
         }
 
         const payload = verifyToken(token);
@@ -40,11 +38,7 @@ export const authenticate = async (
         req.user = user;
 
         next();
-    } catch (error) {
-        if (error instanceof AppError) {
-            next(error);
-        } else {
-            next(new AppError('Invalid or expired token', 401));
-        }
+    } catch {
+        next(new AppError('Unauthorized', 401));
     }
 };

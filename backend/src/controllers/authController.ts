@@ -1,6 +1,5 @@
-import { NextFunction, Request, Response } from 'express';
-
 import * as authService from '@services/auth.service';
+import { NextFunction, Request, Response } from 'express';
 
 import { loginSchema, registerSchema } from '../validators/auth.validators';
 
@@ -65,7 +64,7 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
 export const getMe = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     if (!req.user) {
-      res.status(401).json({ message: 'Not authenticated' });
+      res.status(401).json({ message: 'Unauthorized' });
       return;
     }
 
