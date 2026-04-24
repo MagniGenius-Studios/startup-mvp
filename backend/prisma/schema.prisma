@@ -1,3 +1,4 @@
+// Prisma schema: multi-tenant learning platform entities + coding workspace data.
 generator client {
   provider = "prisma-client-js"
 }

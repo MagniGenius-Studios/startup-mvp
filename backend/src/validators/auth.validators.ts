@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+// Auth request schemas for register and login endpoints.
 export const registerSchema = z.object({
     name: z
         .string({ required_error: 'Name is required' })

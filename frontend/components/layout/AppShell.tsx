@@ -4,6 +4,7 @@ import { PropsWithChildren } from 'react'
 
 import { TopNav } from './TopNav'
 
+// App shell: shared authenticated layout with top nav and centered content.
 export function AppShell({ children }: PropsWithChildren) {
   return (
     <div className="flex min-h-screen flex-col bg-surface-0">

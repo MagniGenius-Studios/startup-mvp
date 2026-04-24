@@ -1,13 +1,16 @@
 import { explainCode } from '@controllers/explainController';
-import { authenticate } from '@middleware/auth';
+import { asyncHandler } from '@middleware/asyncHandler';
+import { authGuard } from '@middleware/auth';
+import { validateBody } from '@middleware/validate';
 import { Router } from 'express';
 
+import { explainCodeSchema } from '../validators/explain.validators';
+
+// Explain routes: step-by-step code explanation endpoint.
 const router = Router();
 
-router.post('/', (req, res, next) => {
-    void authenticate(req, res, () => {
-        void explainCode(req, res, next);
-    });
-});
+router.use(authGuard);
+
+router.post('/', validateBody(explainCodeSchema), asyncHandler(explainCode));
 
 export default router;

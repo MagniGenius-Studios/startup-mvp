@@ -1,5 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 
+// Seed script: bootstraps demo org, languages, tracks, problems, and concept links.
 const prisma = new PrismaClient();
 
 type LanguageSlug = 'python' | 'cpp' | 'java' | 'javascript' | 'go';
@@ -29,8 +30,23 @@ interface ProblemTemplate {
   expectedOutput: string;
 }
 
+interface SeedProblemInput {
+  templateKey: ProblemTemplateKey;
+}
+
+interface SeedTrackInput {
+  title: string;
+  problems: SeedProblemInput[];
+}
+
+interface SeedLanguageInput {
+  slug: LanguageSlug;
+  tracks: SeedTrackInput[];
+}
+
 const code = (...lines: string[]): string => `${lines.join('\n')}\n`;
 
+// Stable IDs keep local reseeding deterministic across environments.
 const DEMO_ORGANIZATION = {
   id: 'a0000000-0000-0000-0000-000000000001',
   slug: 'codebyte-demo',
@@ -62,14 +78,7 @@ const TRACK_TITLES: Record<LanguageSlug, string[]> = {
   go: ['Basics', 'Loops', 'Functions', 'Slices'],
 };
 
-const TRACKS_USING_SET_B: Record<LanguageSlug, string[]> = {
-  python: ['Strings'],
-  cpp: [],
-  java: ['Strings'],
-  javascript: ['Objects'],
-  go: [],
-};
-
+// Reusable beginner problem templates mapped to every supported language.
 const PROBLEM_LIBRARY: Record<ProblemTemplateKey, ProblemTemplate> = {
   printHelloWorld: {
     title: 'Print Hello World',
@@ -601,20 +610,233 @@ const PROBLEM_LIBRARY: Record<ProblemTemplateKey, ProblemTemplate> = {
   },
 };
 
-const PROBLEM_SET_A: ProblemTemplateKey[] = [
-  'printHelloWorld',
-  'sumOfTwoNumbers',
-  'checkEvenOrOdd',
-  'sumOfArray',
-  'reverseAString',
-];
-
-const PROBLEM_SET_B: ProblemTemplateKey[] = [
-  'printHelloWorld',
-  'sumOfTwoNumbers',
-  'checkEvenOrOdd',
-  'reverseAString',
-  'countVowels',
+const TRACK_PROBLEM_COUNT = 5;
+const SEED_BLUEPRINT: SeedLanguageInput[] = [
+  {
+    slug: 'python',
+    tracks: [
+      {
+        title: 'Basics',
+        problems: [
+          { templateKey: 'printHelloWorld' },
+          { templateKey: 'sumOfTwoNumbers' },
+          { templateKey: 'checkEvenOrOdd' },
+          { templateKey: 'sumOfArray' },
+          { templateKey: 'reverseAString' },
+        ],
+      },
+      {
+        title: 'Loops',
+        problems: [
+          { templateKey: 'sumOfTwoNumbers' },
+          { templateKey: 'checkEvenOrOdd' },
+          { templateKey: 'sumOfArray' },
+          { templateKey: 'reverseAString' },
+          { templateKey: 'countVowels' },
+        ],
+      },
+      {
+        title: 'Strings',
+        problems: [
+          { templateKey: 'printHelloWorld' },
+          { templateKey: 'checkEvenOrOdd' },
+          { templateKey: 'sumOfArray' },
+          { templateKey: 'reverseAString' },
+          { templateKey: 'countVowels' },
+        ],
+      },
+      {
+        title: 'Functions',
+        problems: [
+          { templateKey: 'printHelloWorld' },
+          { templateKey: 'sumOfTwoNumbers' },
+          { templateKey: 'sumOfArray' },
+          { templateKey: 'reverseAString' },
+          { templateKey: 'countVowels' },
+        ],
+      },
+    ],
+  },
+  {
+    slug: 'cpp',
+    tracks: [
+      {
+        title: 'Basics',
+        problems: [
+          { templateKey: 'printHelloWorld' },
+          { templateKey: 'sumOfTwoNumbers' },
+          { templateKey: 'checkEvenOrOdd' },
+          { templateKey: 'sumOfArray' },
+          { templateKey: 'countVowels' },
+        ],
+      },
+      {
+        title: 'Loops',
+        problems: [
+          { templateKey: 'printHelloWorld' },
+          { templateKey: 'sumOfTwoNumbers' },
+          { templateKey: 'checkEvenOrOdd' },
+          { templateKey: 'reverseAString' },
+          { templateKey: 'countVowels' },
+        ],
+      },
+      {
+        title: 'STL',
+        problems: [
+          { templateKey: 'printHelloWorld' },
+          { templateKey: 'sumOfTwoNumbers' },
+          { templateKey: 'sumOfArray' },
+          { templateKey: 'reverseAString' },
+          { templateKey: 'countVowels' },
+        ],
+      },
+      {
+        title: 'Arrays',
+        problems: [
+          { templateKey: 'sumOfTwoNumbers' },
+          { templateKey: 'checkEvenOrOdd' },
+          { templateKey: 'sumOfArray' },
+          { templateKey: 'reverseAString' },
+          { templateKey: 'countVowels' },
+        ],
+      },
+    ],
+  },
+  {
+    slug: 'java',
+    tracks: [
+      {
+        title: 'Basics',
+        problems: [
+          { templateKey: 'printHelloWorld' },
+          { templateKey: 'sumOfTwoNumbers' },
+          { templateKey: 'checkEvenOrOdd' },
+          { templateKey: 'sumOfArray' },
+          { templateKey: 'reverseAString' },
+        ],
+      },
+      {
+        title: 'Loops',
+        problems: [
+          { templateKey: 'sumOfTwoNumbers' },
+          { templateKey: 'checkEvenOrOdd' },
+          { templateKey: 'sumOfArray' },
+          { templateKey: 'reverseAString' },
+          { templateKey: 'countVowels' },
+        ],
+      },
+      {
+        title: 'OOP Basics',
+        problems: [
+          { templateKey: 'printHelloWorld' },
+          { templateKey: 'checkEvenOrOdd' },
+          { templateKey: 'sumOfArray' },
+          { templateKey: 'reverseAString' },
+          { templateKey: 'countVowels' },
+        ],
+      },
+      {
+        title: 'Strings',
+        problems: [
+          { templateKey: 'printHelloWorld' },
+          { templateKey: 'sumOfTwoNumbers' },
+          { templateKey: 'sumOfArray' },
+          { templateKey: 'reverseAString' },
+          { templateKey: 'countVowels' },
+        ],
+      },
+    ],
+  },
+  {
+    slug: 'javascript',
+    tracks: [
+      {
+        title: 'Basics',
+        problems: [
+          { templateKey: 'printHelloWorld' },
+          { templateKey: 'sumOfTwoNumbers' },
+          { templateKey: 'checkEvenOrOdd' },
+          { templateKey: 'sumOfArray' },
+          { templateKey: 'countVowels' },
+        ],
+      },
+      {
+        title: 'Functions',
+        problems: [
+          { templateKey: 'printHelloWorld' },
+          { templateKey: 'sumOfTwoNumbers' },
+          { templateKey: 'checkEvenOrOdd' },
+          { templateKey: 'reverseAString' },
+          { templateKey: 'countVowels' },
+        ],
+      },
+      {
+        title: 'Arrays',
+        problems: [
+          { templateKey: 'printHelloWorld' },
+          { templateKey: 'sumOfTwoNumbers' },
+          { templateKey: 'sumOfArray' },
+          { templateKey: 'reverseAString' },
+          { templateKey: 'countVowels' },
+        ],
+      },
+      {
+        title: 'Objects',
+        problems: [
+          { templateKey: 'sumOfTwoNumbers' },
+          { templateKey: 'checkEvenOrOdd' },
+          { templateKey: 'sumOfArray' },
+          { templateKey: 'reverseAString' },
+          { templateKey: 'countVowels' },
+        ],
+      },
+    ],
+  },
+  {
+    slug: 'go',
+    tracks: [
+      {
+        title: 'Basics',
+        problems: [
+          { templateKey: 'printHelloWorld' },
+          { templateKey: 'sumOfTwoNumbers' },
+          { templateKey: 'checkEvenOrOdd' },
+          { templateKey: 'sumOfArray' },
+          { templateKey: 'reverseAString' },
+        ],
+      },
+      {
+        title: 'Loops',
+        problems: [
+          { templateKey: 'sumOfTwoNumbers' },
+          { templateKey: 'checkEvenOrOdd' },
+          { templateKey: 'sumOfArray' },
+          { templateKey: 'reverseAString' },
+          { templateKey: 'countVowels' },
+        ],
+      },
+      {
+        title: 'Functions',
+        problems: [
+          { templateKey: 'printHelloWorld' },
+          { templateKey: 'checkEvenOrOdd' },
+          { templateKey: 'sumOfArray' },
+          { templateKey: 'reverseAString' },
+          { templateKey: 'countVowels' },
+        ],
+      },
+      {
+        title: 'Slices',
+        problems: [
+          { templateKey: 'printHelloWorld' },
+          { templateKey: 'sumOfTwoNumbers' },
+          { templateKey: 'sumOfArray' },
+          { templateKey: 'reverseAString' },
+          { templateKey: 'countVowels' },
+        ],
+      },
+    ],
+  },
 ];
 
 const isObjectRecord = (value: unknown): value is Record<string, unknown> => {
@@ -632,16 +854,69 @@ const hasCompleteCodeMap = (value: unknown): value is CodeMap => {
   });
 };
 
-const shouldUseProblemSetB = (languageSlug: LanguageSlug, trackTitle: string): boolean => {
-  return TRACKS_USING_SET_B[languageSlug].includes(trackTitle);
-};
-
 const buildTrackDescription = (languageSlug: LanguageSlug, trackTitle: string): string => {
   return `Beginner-friendly ${LANGUAGE_LABELS[languageSlug]} ${trackTitle} exercises with runnable examples.`;
 };
 
-const getTemplateKeysForTrack = (languageSlug: LanguageSlug, trackTitle: string): ProblemTemplateKey[] => {
-  return shouldUseProblemSetB(languageSlug, trackTitle) ? PROBLEM_SET_B : PROBLEM_SET_A;
+const buildProblemTitle = (
+  languageSlug: LanguageSlug,
+  trackTitle: string,
+  templateKey: ProblemTemplateKey,
+): string => {
+  const baseTitle = PROBLEM_LIBRARY[templateKey].title;
+  return `${LANGUAGE_LABELS[languageSlug]} ${trackTitle}: ${baseTitle}`;
+};
+
+const buildProblemDescription = (
+  languageSlug: LanguageSlug,
+  trackTitle: string,
+  templateKey: ProblemTemplateKey,
+): string => {
+  const baseDescription = PROBLEM_LIBRARY[templateKey].description;
+  return `${baseDescription}\n\nTrack: ${LANGUAGE_LABELS[languageSlug]} / ${trackTitle}`;
+};
+
+const validateSeedBlueprint = (): void => {
+  const titlesByLanguage = new Map<LanguageSlug, Set<string>>();
+  for (const { slug, tracks } of SEED_BLUEPRINT) {
+    const expectedTitles = new Set(TRACK_TITLES[slug]);
+    const actualTitles = new Set<string>();
+
+    for (const track of tracks) {
+      actualTitles.add(track.title);
+
+      if (track.problems.length !== TRACK_PROBLEM_COUNT) {
+        throw new Error(
+          `Seed blueprint invalid: ${slug}/${track.title} must contain exactly ${TRACK_PROBLEM_COUNT} problems.`,
+        );
+      }
+
+      const seen = new Set<ProblemTemplateKey>();
+      for (const problem of track.problems) {
+        if (seen.has(problem.templateKey)) {
+          throw new Error(`Seed blueprint invalid: duplicate template in ${slug}/${track.title}.`);
+        }
+
+        seen.add(problem.templateKey);
+      }
+    }
+
+    if (actualTitles.size !== expectedTitles.size) {
+      throw new Error(`Seed blueprint invalid: track count mismatch for ${slug}.`);
+    }
+
+    for (const title of expectedTitles) {
+      if (!actualTitles.has(title)) {
+        throw new Error(`Seed blueprint invalid: missing track "${title}" for ${slug}.`);
+      }
+    }
+
+    titlesByLanguage.set(slug, actualTitles);
+  }
+
+  if (titlesByLanguage.size !== LANGUAGE_SEEDS.length) {
+    throw new Error('Seed blueprint invalid: every seeded language must have track definitions.');
+  }
 };
 
 async function ensureDemoOrganization(): Promise<string> {
@@ -696,25 +971,14 @@ async function ensureLanguages(): Promise<Record<LanguageSlug, string>> {
   return languageIds;
 }
 
-async function resetSeedScope(organizationId: string, languageIds: string[]): Promise<void> {
-  const problemDeleteResult = await prisma.problem.deleteMany({
-    where: {
-      track: {
-        organizationId,
-        languageId: { in: languageIds },
-      },
-    },
-  });
+async function resetSeedData(): Promise<void> {
+  const problemDeleteResult = await prisma.problem.deleteMany();
+  const trackDeleteResult = await prisma.track.deleteMany();
+  const languageDeleteResult = await prisma.language.deleteMany();
 
-  const trackDeleteResult = await prisma.track.deleteMany({
-    where: {
-      organizationId,
-      languageId: { in: languageIds },
-    },
-  });
-
-  console.log(`  ✓ Cleared ${problemDeleteResult.count} existing problems in seed scope`);
-  console.log(`  ✓ Cleared ${trackDeleteResult.count} existing tracks in seed scope`);
+  console.log(`  ✓ Cleared ${problemDeleteResult.count} existing problems`);
+  console.log(`  ✓ Cleared ${trackDeleteResult.count} existing tracks`);
+  console.log(`  ✓ Cleared ${languageDeleteResult.count} existing languages`);
 }
 
 async function seedTracksAndProblems(
@@ -724,16 +988,16 @@ async function seedTracksAndProblems(
   let seededTrackCount = 0;
   let seededProblemCount = 0;
 
-  for (const language of LANGUAGE_SEEDS) {
-    const trackTitles = TRACK_TITLES[language.slug];
+  for (const language of SEED_BLUEPRINT) {
+    const languageId = languageIds[language.slug];
 
-    for (const trackTitle of trackTitles) {
+    for (const trackInput of language.tracks) {
       const track = await prisma.track.create({
         data: {
           organizationId,
-          languageId: languageIds[language.slug],
-          title: trackTitle,
-          description: buildTrackDescription(language.slug, trackTitle),
+          languageId,
+          title: trackInput.title,
+          description: buildTrackDescription(language.slug, trackInput.title),
           isPublished: true,
         },
         select: { id: true },
@@ -741,26 +1005,26 @@ async function seedTracksAndProblems(
 
       seededTrackCount += 1;
 
-      const templateKeys = getTemplateKeysForTrack(language.slug, trackTitle);
+      const problemRows: Prisma.ProblemCreateManyInput[] = [];
 
-      for (let index = 0; index < templateKeys.length; index += 1) {
-        const template = PROBLEM_LIBRARY[templateKeys[index]];
+      for (let index = 0; index < trackInput.problems.length; index += 1) {
+        const problemInput = trackInput.problems[index];
+        const template = PROBLEM_LIBRARY[problemInput.templateKey];
 
-        await prisma.problem.create({
-          data: {
-            trackId: track.id,
-            title: template.title,
-            description: template.description,
-            difficulty: template.difficulty,
-            starterCode: template.starterCode,
-            solutionCode: template.solutionCode,
-            expectedOutput: template.expectedOutput,
-            position: index + 1,
-          },
+        problemRows.push({
+          trackId: track.id,
+          title: buildProblemTitle(language.slug, trackInput.title, problemInput.templateKey),
+          description: buildProblemDescription(language.slug, trackInput.title, problemInput.templateKey),
+          difficulty: template.difficulty,
+          starterCode: template.starterCode,
+          solutionCode: template.solutionCode,
+          expectedOutput: template.expectedOutput,
+          position: index + 1,
         });
-
-        seededProblemCount += 1;
       }
+
+      await prisma.problem.createMany({ data: problemRows });
+      seededProblemCount += problemRows.length;
     }
   }
 
@@ -772,6 +1036,12 @@ async function validateSeedInvariants(
   organizationId: string,
   languageIds: Record<LanguageSlug, string>,
 ): Promise<void> {
+  const expectedTrackCount = SEED_BLUEPRINT.reduce((total, language) => {
+    return total + language.tracks.length;
+  }, 0);
+  const expectedProblemCount = SEED_BLUEPRINT.reduce((total, language) => {
+    return total + language.tracks.reduce((trackTotal, track) => trackTotal + track.problems.length, 0);
+  }, 0);
   const expectedLanguageSlugs = LANGUAGE_SEEDS.map((language) => language.slug).sort();
 
   const languageRows = await prisma.language.findMany({
@@ -804,6 +1074,7 @@ async function validateSeedInvariants(
       },
     },
     select: {
+      id: true,
       title: true,
       language: {
         select: {
@@ -818,8 +1089,8 @@ async function validateSeedInvariants(
     },
   });
 
-  if (tracks.length !== 20) {
-    throw new Error(`Track validation failed: expected 20 tracks, found ${tracks.length}.`);
+  if (tracks.length !== expectedTrackCount) {
+    throw new Error(`Track validation failed: expected ${expectedTrackCount} tracks, found ${tracks.length}.`);
   }
 
   for (const language of LANGUAGE_SEEDS) {
@@ -843,9 +1114,65 @@ async function validateSeedInvariants(
     }
   }
 
-  const tracksWithBadProblemCount = tracks.filter((track) => track._count.problems !== 5);
+  const tracksWithBadProblemCount = tracks.filter((track) => track._count.problems !== TRACK_PROBLEM_COUNT);
   if (tracksWithBadProblemCount.length > 0) {
-    throw new Error('Track validation failed: every track must contain exactly 5 problems.');
+    throw new Error(`Track validation failed: every track must contain exactly ${TRACK_PROBLEM_COUNT} problems.`);
+  }
+
+  const [nullTrackMappings] = await prisma.$queryRaw<Array<{ count: number }>>`
+    SELECT COUNT(*)::int AS "count"
+    FROM "Problem" p
+    WHERE p."trackId" IS NULL
+  `;
+
+  if (nullTrackMappings.count > 0) {
+    throw new Error(`Problem mapping validation failed: found ${nullTrackMappings.count} rows with null trackId.`);
+  }
+
+  const [orphanTrackMappings] = await prisma.$queryRaw<Array<{ count: number }>>`
+    SELECT COUNT(*)::int AS "count"
+    FROM "Problem" p
+    LEFT JOIN "Track" t ON t."id" = p."trackId"
+    WHERE p."trackId" IS NOT NULL
+      AND t."id" IS NULL
+  `;
+
+  if (orphanTrackMappings.count > 0) {
+    throw new Error(
+      `Problem mapping validation failed: found ${orphanTrackMappings.count} rows with orphan track references.`,
+    );
+  }
+
+  const duplicateTrackTitleMappings = await prisma.$queryRaw<
+    Array<{ trackId: string; title: string; count: number }>
+  >(Prisma.sql`
+    SELECT p."trackId", p."title", COUNT(*)::int AS "count"
+    FROM "Problem" p
+    INNER JOIN "Track" t ON t."id" = p."trackId"
+    WHERE t."organizationId" = ${organizationId}
+      AND t."languageId" IN (${Prisma.join(scopedLanguageIds)})
+    GROUP BY p."trackId", p."title"
+    HAVING COUNT(*) > 1
+  `);
+
+  if (duplicateTrackTitleMappings.length > 0) {
+    throw new Error('Problem mapping validation failed: duplicate title mappings found inside a track.');
+  }
+
+  const duplicateTitlesAcrossTracks = await prisma.$queryRaw<
+    Array<{ title: string; trackCount: number }>
+  >(Prisma.sql`
+    SELECT p."title", COUNT(DISTINCT p."trackId")::int AS "trackCount"
+    FROM "Problem" p
+    INNER JOIN "Track" t ON t."id" = p."trackId"
+    WHERE t."organizationId" = ${organizationId}
+      AND t."languageId" IN (${Prisma.join(scopedLanguageIds)})
+    GROUP BY p."title"
+    HAVING COUNT(DISTINCT p."trackId") > 1
+  `);
+
+  if (duplicateTitlesAcrossTracks.length > 0) {
+    throw new Error('Problem validation failed: duplicate problem titles found across different tracks.');
   }
 
   const scopedProblems = await prisma.problem.findMany({
@@ -868,8 +1195,10 @@ async function validateSeedInvariants(
     },
   });
 
-  if (scopedProblems.length !== 100) {
-    throw new Error(`Problem validation failed: expected 100 problems, found ${scopedProblems.length}.`);
+  if (scopedProblems.length !== expectedProblemCount) {
+    throw new Error(
+      `Problem validation failed: expected ${expectedProblemCount} problems, found ${scopedProblems.length}.`,
+    );
   }
 
   for (const problem of scopedProblems) {
@@ -898,19 +1227,21 @@ async function validateSeedInvariants(
     }
   }
 
-  console.log('  ✓ Validation passed (languages, tracks, problems, code maps)');
+  console.log('  ✓ Validation passed (languages, tracks, strict mappings, unique titles, code maps)');
 }
 
 async function main() {
   console.log('🌱 Seeding database...');
+  validateSeedBlueprint();
 
   const organizationId = await ensureDemoOrganization();
   console.log('  ✓ Demo organization resolved');
 
+  await resetSeedData();
+
   const languageIds = await ensureLanguages();
   console.log('  ✓ Languages resolved/created');
 
-  await resetSeedScope(organizationId, Object.values(languageIds));
   await seedTracksAndProblems(organizationId, languageIds);
   await validateSeedInvariants(organizationId, languageIds);
 

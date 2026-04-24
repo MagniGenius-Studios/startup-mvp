@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { memo, useState } from 'react'
 
 import type { SubmissionStatus } from './SubmitBar'
 import type { SubmissionHistoryItem } from '@/lib/submissions'
@@ -20,6 +20,7 @@ interface MentorPanelProps {
   onLoadHistoryCode: (code: string) => void
 }
 
+// Right mentor panel: submission result, structured feedback, and attempt history.
 function TimeAgo({ date }: { date: string }) {
   const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000)
   if (seconds < 60) return <span>just now</span>
@@ -30,7 +31,7 @@ function TimeAgo({ date }: { date: string }) {
   return <span>{Math.floor(hours / 24)}d ago</span>
 }
 
-export default function MentorPanel({
+function MentorPanelComponent({
   isOpen,
   onClose,
   status,
@@ -44,7 +45,9 @@ export default function MentorPanel({
   history,
   onLoadHistoryCode,
 }: MentorPanelProps) {
+  // Toggles expected-vs-actual output section.
   const [showOutput, setShowOutput] = useState(false)
+  // These flags drive conditional cards without duplicating JSX checks.
   const hasResult = status === 'done' && isCorrect !== null
   const hasFeedback = !!(mistake || concept || improvement)
   const hasOutputComparison = expectedOutput !== null && userOutput !== null
@@ -215,3 +218,7 @@ export default function MentorPanel({
     </div>
   )
 }
+
+const MentorPanel = memo(MentorPanelComponent)
+
+export default MentorPanel

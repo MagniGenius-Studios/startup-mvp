@@ -1,8 +1,8 @@
+import { AppError } from '@utils/AppError';
 import { NextFunction, Request, Response } from 'express';
 import { ZodError } from 'zod';
 
-import { AppError } from '@utils/AppError';
-
+// Centralized API error mapper for AppError, Zod errors, and unknown failures.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const errorHandler = (
   err: Error,
@@ -16,6 +16,8 @@ export const errorHandler = (
   if (err instanceof AppError) {
     return res.status(err.statusCode).json({
       message: err.message,
+      statusCode: err.statusCode,
+      ...(err.errors ? { errors: err.errors } : {}),
     });
   }
 
@@ -23,6 +25,7 @@ export const errorHandler = (
   if (err instanceof ZodError) {
     return res.status(400).json({
       message: 'Validation failed',
+      statusCode: 400,
       errors: err.flatten().fieldErrors,
     });
   }
@@ -31,5 +34,6 @@ export const errorHandler = (
   console.error('Unhandled error:', err);
   return res.status(500).json({
     message: 'Internal server error',
+    statusCode: 500,
   });
 };

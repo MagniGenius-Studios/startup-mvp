@@ -2,6 +2,7 @@ import { getPrismaClient } from '@config/db';
 import { Prisma } from '@prisma/client';
 import { isMissingProblemProgressStorageError } from '@utils/dbError';
 
+// Progress service: stores and reads per-problem state for each user.
 export const PROBLEM_PROGRESS_STATUS = {
   NOT_STARTED: 'NOT_STARTED',
   IN_PROGRESS: 'IN_PROGRESS',
@@ -51,6 +52,7 @@ export const upsertProblemProgress = async (
     });
   } catch (error) {
     if (isMissingProblemProgressStorageError(error)) {
+      // Older local DBs may not have this table yet.
       return;
     }
     throw error;
@@ -61,6 +63,7 @@ const listProblemProgressFromSubmissions = async (
   userId: string,
 ): Promise<ProblemProgressDto[]> => {
   const prisma = getPrismaClient();
+  // Fallback summary from submissions when ProblemProgress table is unavailable.
   const fallbackProgress = await prisma.$queryRaw<Array<{ problemId: string; status: string }>>(
     Prisma.sql`
       SELECT
@@ -88,6 +91,7 @@ export const listProblemProgress = async (
 
   let progress: Array<{ problemId: string; status: string }> = [];
   try {
+    // Read user progress rows directly from dedicated progress table.
     progress = await prisma.$queryRaw<Array<{ problemId: string; status: string }>>(
       Prisma.sql`
         SELECT pp."problemId", pp."status"

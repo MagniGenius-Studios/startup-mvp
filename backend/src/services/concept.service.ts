@@ -1,7 +1,6 @@
 import { getPrismaClient } from '@config/db';
 
-// ─── Types ──────────────────────────────────────────────────────
-
+// Concept service: mastery scoring and personalized problem recommendations.
 export interface ConceptMasteryDto {
     concept: { id: string; slug: string; name: string };
     score: number;
@@ -14,23 +13,20 @@ export interface RecommendedProblemDto {
     concepts: string[];
 }
 
-// ─── Constants ──────────────────────────────────────────────────
-
 const CORRECT_DELTA = 10;
 const INCORRECT_DELTA = 2;
 const MAX_SCORE = 100;
+const COMPLETED_STATUS = 'COMPLETED';
 
-// ─── Mastery Update ─────────────────────────────────────────────
+const difficultyOrder: Record<string, number> = { easy: 0, medium: 1, hard: 2 };
 
-/**
- * After a submission, update mastery for every concept linked to the problem.
- *
- * Logic:
- * - isCorrect → +10 (up to 100)
- * - !isCorrect → +2  (up to 100)
- *
- * Uses upsert on the (userId, conceptId) unique constraint.
- */
+const sortByDifficulty = (a: { difficulty: string | null }, b: { difficulty: string | null }): number => {
+    return (difficultyOrder[a.difficulty?.toLowerCase() ?? ''] ?? 99)
+        - (difficultyOrder[b.difficulty?.toLowerCase() ?? ''] ?? 99);
+};
+
+// Updates concept mastery linked to a solved/attempted problem.
+// Correct answers boost more, but both paths encourage practice.
 export const updateConceptMastery = async (
     userId: string,
     problemId: string,
@@ -38,20 +34,20 @@ export const updateConceptMastery = async (
 ): Promise<void> => {
     const prisma = getPrismaClient();
 
-    // 1. Get all concept links for this problem (single query, no N+1)
+    // Fetch concept links once to avoid per-concept lookup queries.
     const links = await prisma.problemConcept.findMany({
         where: { problemId },
         select: { conceptId: true },
     });
 
     if (links.length === 0) {
-        // Problem has no concept tags — skip silently
+        // Some problems may not be tagged yet.
         return;
     }
 
     const delta = isCorrect ? CORRECT_DELTA : INCORRECT_DELTA;
 
-    // 2. Upsert mastery for each concept (parallel batch)
+    // Upsert preserves existing score and clamps at MAX_SCORE.
     await Promise.all(
         links.map(({ conceptId }) =>
             prisma.$executeRaw`
@@ -66,11 +62,7 @@ export const updateConceptMastery = async (
     );
 };
 
-// ─── Read Mastery ───────────────────────────────────────────────
-
-/**
- * Get all concept mastery scores for a user, weakest first.
- */
+// Lists all concept scores for a user from weakest to strongest.
 export const getUserConceptMastery = async (
     userId: string,
 ): Promise<ConceptMasteryDto[]> => {
@@ -93,11 +85,7 @@ export const getUserConceptMastery = async (
     }));
 };
 
-// ─── Weak Concepts ──────────────────────────────────────────────
-
-/**
- * Return the N lowest-scored concepts for a user.
- */
+// Returns the weakest N concepts used by dashboard and recommendation logic.
 export const getWeakConcepts = async (
     userId: string,
     limit = 3,
@@ -122,104 +110,37 @@ export const getWeakConcepts = async (
     }));
 };
 
-// ─── Recommendations ────────────────────────────────────────────
-
-/**
- * Recommend problems the user should work on, based on their weakest concepts.
- *
- * Flow:
- * 1. Get weakest 3 concepts
- * 2. Find problems linked to those concepts
- * 3. Exclude already-COMPLETED problems
- * 4. Order by easiest first
- * 5. Limit 5
- */
+// Recommends next problems by combining weak concepts + unsolved filters.
 export const getRecommendedProblems = async (
     userId: string,
 ): Promise<RecommendedProblemDto[]> => {
     const prisma = getPrismaClient();
 
-    // 1. Get weak concepts
+    // Start from weak concepts so suggestions target skill gaps.
     const weakConcepts = await getWeakConcepts(userId, 3);
 
     if (weakConcepts.length === 0) {
-        // User has no mastery data yet — return easiest unsolved problems
+        // Cold-start fallback for new users without mastery history.
         return getEasiestUnsolvedProblems(userId);
     }
 
     const weakConceptIds = weakConcepts.map((wc) => wc.concept.id);
 
-    // 2. Get completed problem IDs (to exclude)
-    const completedRecords = await prisma.problemProgress.findMany({
-        where: { userId, status: 'COMPLETED' },
-        select: { problemId: true },
-    });
-    const completedIds = new Set(completedRecords.map((r) => r.problemId));
-
-    // 3. Find problems linked to weak concepts
-    const problemLinks = await prisma.problemConcept.findMany({
-        where: { conceptId: { in: weakConceptIds } },
-        select: {
-            problem: {
-                select: {
-                    id: true,
-                    title: true,
-                    difficulty: true,
-                    concepts: {
-                        select: {
-                            concept: { select: { name: true } },
-                        },
-                    },
+    // Fetch candidate problems linked to weak concepts and not yet completed.
+    const problems = await prisma.problem.findMany({
+        where: {
+            concepts: {
+                some: {
+                    conceptId: { in: weakConceptIds },
+                },
+            },
+            progressRecords: {
+                none: {
+                    userId,
+                    status: COMPLETED_STATUS,
                 },
             },
         },
-    });
-
-    // 4. Deduplicate and exclude completed
-    const seen = new Set<string>();
-    const candidates: RecommendedProblemDto[] = [];
-
-    for (const link of problemLinks) {
-        const p = link.problem;
-        if (completedIds.has(p.id) || seen.has(p.id)) continue;
-        seen.add(p.id);
-
-        candidates.push({
-            problemId: p.id,
-            title: p.title,
-            difficulty: p.difficulty,
-            concepts: p.concepts.map((c) => c.concept.name),
-        });
-    }
-
-    // 5. Sort: EASY < MEDIUM < HARD, then take 5
-    const difficultyOrder: Record<string, number> = { easy: 0, medium: 1, hard: 2 };
-    candidates.sort(
-        (a, b) =>
-            (difficultyOrder[a.difficulty?.toLowerCase() ?? ''] ?? 99) -
-            (difficultyOrder[b.difficulty?.toLowerCase() ?? ''] ?? 99),
-    );
-
-    return candidates.slice(0, 5);
-};
-
-/**
- * Fallback: when user has no mastery data, return easiest unsolved problems.
- */
-const getEasiestUnsolvedProblems = async (
-    userId: string,
-): Promise<RecommendedProblemDto[]> => {
-    const prisma = getPrismaClient();
-
-    const completedRecords = await prisma.problemProgress.findMany({
-        where: { userId, status: 'COMPLETED' },
-        select: { problemId: true },
-    });
-
-    const completedIds = completedRecords.map((r) => r.problemId);
-
-    const problems = await prisma.problem.findMany({
-        where: completedIds.length > 0 ? { id: { notIn: completedIds } } : {},
         select: {
             id: true,
             title: true,
@@ -231,13 +152,56 @@ const getEasiestUnsolvedProblems = async (
             },
         },
         orderBy: { position: 'asc' },
-        take: 5,
+        take: 30,
     });
 
-    return problems.map((p) => ({
-        problemId: p.id,
-        title: p.title,
-        difficulty: p.difficulty,
-        concepts: p.concepts.map((c) => c.concept.name),
-    }));
+    return problems
+        .map((problem) => ({
+            problemId: problem.id,
+            title: problem.title,
+            difficulty: problem.difficulty,
+            concepts: problem.concepts.map((c) => c.concept.name),
+        }))
+        .sort(sortByDifficulty)
+        .slice(0, 5);
+};
+
+// Fallback recommendations for users with no concept mastery yet.
+const getEasiestUnsolvedProblems = async (
+    userId: string,
+): Promise<RecommendedProblemDto[]> => {
+    const prisma = getPrismaClient();
+
+    const problems = await prisma.problem.findMany({
+        where: {
+            progressRecords: {
+                none: {
+                    userId,
+                    status: COMPLETED_STATUS,
+                },
+            },
+        },
+        select: {
+            id: true,
+            title: true,
+            difficulty: true,
+            concepts: {
+                select: {
+                    concept: { select: { name: true } },
+                },
+            },
+        },
+        orderBy: { position: 'asc' },
+        take: 20,
+    });
+
+    return problems
+        .map((problem) => ({
+            problemId: problem.id,
+            title: problem.title,
+            difficulty: problem.difficulty,
+            concepts: problem.concepts.map((c) => c.concept.name),
+        }))
+        .sort(sortByDifficulty)
+        .slice(0, 5);
 };

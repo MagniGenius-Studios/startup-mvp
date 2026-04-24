@@ -1,16 +1,10 @@
+import { requireUser } from '@middleware/auth';
 import * as dashboardService from '@services/dashboard.service';
-import { NextFunction, Request, Response } from 'express';
+import { Request, Response } from 'express';
 
-export const getDashboard = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    if (!req.user) {
-      res.status(401).json({ message: 'Unauthorized' });
-      return;
-    }
-
-    const data = await dashboardService.getDashboard(req.user.id);
-    res.status(200).json(data);
-  } catch (error) {
-    next(error);
-  }
+// Handles GET /dashboard by aggregating progress, streak, and recommendations.
+export const getDashboard = async (req: Request, res: Response): Promise<void> => {
+  const user = requireUser(req);
+  const data = await dashboardService.getDashboard(user.id);
+  res.status(200).json(data);
 };

@@ -1,24 +1,21 @@
 import { connectDatabase } from '@config/db';
-import { NextFunction,Request, Response } from 'express';
+import { Request, Response } from 'express';
 
 type HealthStatus = {
   api: 'ok';
   database?: 'ok';
 };
 
-export const healthCheck = async (req: Request, res: Response, next: NextFunction) => {
+// Handles GET /health and optionally checks DB connectivity with ?checkDb=true.
+export const healthCheck = async (req: Request, res: Response): Promise<void> => {
   const checkDb = req.query.checkDb === 'true';
   const status: HealthStatus = { api: 'ok' };
 
-  try {
-    if (checkDb) {
-      const client = await connectDatabase();
-      await client.$queryRaw`SELECT 1`;
-      status.database = 'ok';
-    }
-
-    res.json({ status });
-  } catch (error) {
-    next(error);
+  if (checkDb) {
+    const client = await connectDatabase();
+    await client.$queryRaw`SELECT 1`;
+    status.database = 'ok';
   }
+
+  res.json({ status });
 };

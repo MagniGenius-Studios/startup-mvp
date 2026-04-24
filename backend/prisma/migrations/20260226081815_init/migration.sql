@@ -1,3 +1,4 @@
+-- Initializes core platform schema and baseline learning entities.
 -- CreateEnum
 CREATE TYPE "SubmissionStatus" AS ENUM ('DRAFT', 'SUBMITTED', 'ANALYZING', 'COMPLETED', 'ERROR');
 

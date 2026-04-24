@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import React from 'react'
+import React, { memo } from 'react'
 
 interface WorkspaceLayoutProps {
   header: {
@@ -15,7 +15,8 @@ interface WorkspaceLayoutProps {
   onToggleMentor: () => void
 }
 
-export default function WorkspaceLayout({
+// Workspace shell: fixed header + three-panel coding layout.
+function WorkspaceLayoutComponent({
   header,
   problemPanel,
   editorPanel,
@@ -26,7 +27,7 @@ export default function WorkspaceLayout({
   return (
     <div className="flex h-screen flex-col bg-surface-0">
       {/* Minimal header */}
-      <header className="flex h-12 shrink-0 items-center justify-between border-b border-white/[0.06] bg-surface-0 px-4">
+      <header className="workspace-panel-header flex h-12 shrink-0 items-center justify-between px-4">
         <div className="flex items-center gap-4">
           <Link
             href="/dashboard"
@@ -81,3 +82,7 @@ export default function WorkspaceLayout({
     </div>
   )
 }
+
+const WorkspaceLayout = memo(WorkspaceLayoutComponent)
+
+export default WorkspaceLayout

@@ -1,35 +1,22 @@
 import { getPrismaClient } from '@config/db';
 import { isMissingProblemProgressStorageError } from '@utils/dbError';
 
-// ─── Helpers ────────────────────────────────────────────────────
-
-/**
- * Check if two dates fall on the same calendar day (UTC).
- */
+// Streak service: tracks consecutive active days based on submissions.
+// Compare dates in UTC to keep behavior consistent across timezones.
 const isSameDay = (a: Date, b: Date): boolean =>
     a.getUTCFullYear() === b.getUTCFullYear() &&
     a.getUTCMonth() === b.getUTCMonth() &&
     a.getUTCDate() === b.getUTCDate();
 
-/**
- * Check if `a` is exactly one calendar day before `b` (UTC).
- */
+// Checks whether `a` is exactly one day before `b`.
 const isYesterday = (a: Date, b: Date): boolean => {
     const yesterday = new Date(b);
     yesterday.setUTCDate(yesterday.getUTCDate() - 1);
     return isSameDay(a, yesterday);
 };
 
-// ─── Service ────────────────────────────────────────────────────
-
-/**
- * Update the user's daily streak after a submission.
- *
- * Logic:
- * - If lastActive is yesterday → increment current
- * - If lastActive is today → no change
- * - Else (gap > 1 day or first ever) → reset to 1
- */
+// Updates streak after each submission.
+// Yesterday increments, same-day keeps, longer gap resets to 1.
 export const updateStreak = async (userId: string): Promise<void> => {
     const prisma = getPrismaClient();
     const now = new Date();
@@ -40,7 +27,7 @@ export const updateStreak = async (userId: string): Promise<void> => {
         });
 
         if (!existing) {
-            // First submission ever — start streak at 1
+            // First activity creates a streak baseline.
             await prisma.userStreak.create({
                 data: {
                     userId,
@@ -52,7 +39,7 @@ export const updateStreak = async (userId: string): Promise<void> => {
         }
 
         if (isSameDay(existing.lastActive, now)) {
-            // Already submitted today — no change
+            // Avoid double-counting multiple submissions in one day.
             return;
         }
 
@@ -69,16 +56,14 @@ export const updateStreak = async (userId: string): Promise<void> => {
         });
     } catch (error) {
         if (isMissingProblemProgressStorageError(error)) {
-            // Table doesn't exist yet — gracefully skip
+            // Backward compatibility for DBs missing streak table.
             return;
         }
         throw error;
     }
 };
 
-/**
- * Get the user's current streak count (0 if no record).
- */
+// Returns current streak, or 0 when record is missing/stale.
 export const getStreak = async (userId: string): Promise<number> => {
     const prisma = getPrismaClient();
 
@@ -92,7 +77,7 @@ export const getStreak = async (userId: string): Promise<number> => {
             return 0;
         }
 
-        // If the streak is stale (last active was more than 1 day ago), return 0
+        // Streak expires when user skipped more than one day.
         const now = new Date();
         if (!isSameDay(streak.lastActive, now) && !isYesterday(streak.lastActive, now)) {
             return 0;

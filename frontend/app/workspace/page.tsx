@@ -5,11 +5,13 @@ import { useRouter } from 'next/navigation'
 
 import { useAuth } from '@/lib/auth'
 
+// Legacy workspace route: sends authenticated users to /learn.
 export default function WorkspaceLegacyPage() {
   const { user, loading } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
+    // Keep old /workspace URL functional by redirecting to current entry flow.
     if (!loading && user) {
       router.push('/learn')
     }

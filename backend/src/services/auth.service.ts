@@ -5,6 +5,7 @@ import { comparePassword, hashPassword } from '@utils/password';
 
 import type { LoginInput, RegisterInput } from '../validators/auth.validators';
 
+// Auth service: user creation, credential verification, and token issuance.
 export interface UserDto {
     id: string;
     name: string | null;
@@ -32,15 +33,18 @@ const toUserDto = (user: {
     createdAt: user.createdAt,
 });
 
+// Creates a new account and returns a signed session token.
 export const registerUser = async (input: RegisterInput): Promise<AuthResult> => {
-    const prisma = getPrismaClient();
+  const prisma = getPrismaClient();
 
-    const existing = await prisma.user.findUnique({ where: { email: input.email } });
-    if (existing) {
-        throw new AppError('An account with this email already exists', 409);
-    }
+  // Prevent duplicate accounts for the same email address.
+  const existing = await prisma.user.findUnique({ where: { email: input.email } });
+  if (existing) {
+    throw new AppError('An account with this email already exists', 409);
+  }
 
-    const passwordHash = await hashPassword(input.password);
+  // Store only the bcrypt hash, never the raw password.
+  const passwordHash = await hashPassword(input.password);
 
     const user = await prisma.user.create({
         data: {
@@ -57,13 +61,14 @@ export const registerUser = async (input: RegisterInput): Promise<AuthResult> =>
         },
     });
 
-    const token = signToken(user.id);
+  const token = signToken(user.id);
 
-    return { user: toUserDto(user), token };
+  return { user: toUserDto(user), token };
 };
 
+// Validates login credentials and returns a fresh token on success.
 export const loginUser = async (input: LoginInput): Promise<AuthResult> => {
-    const prisma = getPrismaClient();
+  const prisma = getPrismaClient();
 
     const user = await prisma.user.findUnique({
         where: { email: input.email },
@@ -77,20 +82,22 @@ export const loginUser = async (input: LoginInput): Promise<AuthResult> => {
         },
     });
 
-    if (!user || !user.passwordHash) {
-        throw new AppError('Invalid email or password', 401);
-    }
+  if (!user || !user.passwordHash) {
+    throw new AppError('Invalid email or password', 401);
+  }
 
-    const isMatch = await comparePassword(input.password, user.passwordHash);
-    if (!isMatch) {
-        throw new AppError('Invalid email or password', 401);
+  // Compare plaintext password from request with stored password hash.
+  const isMatch = await comparePassword(input.password, user.passwordHash);
+  if (!isMatch) {
+    throw new AppError('Invalid email or password', 401);
     }
 
     const token = signToken(user.id);
 
-    return { user: toUserDto(user), token };
+  return { user: toUserDto(user), token };
 };
 
+// Loads public-safe user fields for authenticated requests.
 export const getUserById = async (userId: string): Promise<UserDto> => {
     const prisma = getPrismaClient();
 

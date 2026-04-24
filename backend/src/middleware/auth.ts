@@ -2,9 +2,10 @@ import type { UserDto } from '@services/auth.service';
 import { getUserById } from '@services/auth.service';
 import { AppError } from '@utils/AppError';
 import { verifyToken } from '@utils/jwt';
-import { NextFunction, Request, Response } from 'express';
+import { NextFunction, Request, RequestHandler, Response } from 'express';
 
-// Extend the Express Request type to carry the authenticated user
+// Auth middleware: resolves user from JWT and protects private routes.
+// Extend Express Request to carry the authenticated user object.
 declare global {
     // eslint-disable-next-line @typescript-eslint/no-namespace
     namespace Express {
@@ -20,7 +21,7 @@ export const authenticate = async (
     next: NextFunction,
 ): Promise<void> => {
     try {
-        // Try cookie first, then Authorization header
+        // Read token from cookie first, then Bearer header fallback.
         let token: string | undefined;
 
         if (req.cookies?.token) {
@@ -34,6 +35,7 @@ export const authenticate = async (
         }
 
         const payload = verifyToken(token);
+        // Load fresh user snapshot so downstream handlers get current role/name.
         const user = await getUserById(payload.userId);
         req.user = user;
 
@@ -41,4 +43,18 @@ export const authenticate = async (
     } catch {
         next(new AppError('Unauthorized', 401));
     }
+};
+
+// Adapter to use async authenticate in standard Express middleware chains.
+export const authGuard: RequestHandler = (req, res, next) => {
+    void authenticate(req, res, next);
+};
+
+// Utility used by controllers to enforce user presence.
+export const requireUser = (req: Request): UserDto => {
+    if (!req.user) {
+        throw new AppError('Unauthorized', 401);
+    }
+
+    return req.user;
 };

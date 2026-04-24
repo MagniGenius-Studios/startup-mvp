@@ -1,8 +1,9 @@
+import { type SupportedLanguage } from '@constants/languages';
 import type { Prisma } from '@prisma/client';
 
-import { type SupportedLanguage } from '@constants/languages';
 import { evaluateCorrectness } from './ai.service';
 
+// Evaluation service: deterministic correctness checks before AI explanation.
 export interface SubmissionEvaluationInput {
   code: string;
   language: SupportedLanguage;
@@ -33,6 +34,7 @@ export const getLanguageCodeFromJson = (
   jsonValue: Prisma.JsonValue,
   language: SupportedLanguage,
 ): string | null => {
+  // Support legacy string format as python-only fallback.
   if (typeof jsonValue === 'string') {
     return language === 'python' ? jsonValue : null;
   }
@@ -130,6 +132,7 @@ const extractGoPrints = (line: string): string | null => {
 };
 
 export const naiveExtractPrints = (code: string, language: SupportedLanguage): string | null => {
+  // Lightweight output extraction for fixed-output beginner exercises.
   const lines = code.split('\n');
   const outputs: string[] = [];
 
@@ -164,6 +167,7 @@ export const naiveExtractPrints = (code: string, language: SupportedLanguage): s
 export const evaluateSubmission = (
   input: SubmissionEvaluationInput,
 ): SubmissionEvaluationResult => {
+  // Select the canonical solution for the chosen language.
   const referenceSolution = getLanguageCodeFromJson(input.solutionCode, input.language);
   if (!referenceSolution) {
     throw new Error('LANGUAGE_NOT_SUPPORTED');
@@ -173,6 +177,7 @@ export const evaluateSubmission = (
   let userOutput: string | null = null;
 
   if (expectedOutput) {
+    // Prefer exact output matching when expected output is known.
     userOutput = naiveExtractPrints(input.code, input.language);
   }
 
@@ -180,6 +185,7 @@ export const evaluateSubmission = (
   if (expectedOutput && userOutput !== null) {
     isCorrect = normalizeOutput(userOutput) === normalizeOutput(expectedOutput);
   } else {
+    // Fallback to heuristic structural comparison against reference solution.
     isCorrect = evaluateCorrectness(input.code, referenceSolution);
   }
 

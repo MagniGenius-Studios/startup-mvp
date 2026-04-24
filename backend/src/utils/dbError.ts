@@ -1,9 +1,7 @@
 import { Prisma } from '@prisma/client';
 
-/**
- * Detects schema-mismatch errors for ProblemProgress storage.
- * This keeps the app usable when code is ahead of local DB migrations.
- */
+// Detects missing ProblemProgress schema pieces on older local databases.
+// Lets endpoints degrade gracefully when migrations are not yet applied.
 export const isMissingProblemProgressStorageError = (error: unknown): boolean => {
   if (!(error instanceof Prisma.PrismaClientKnownRequestError)) {
     return false;

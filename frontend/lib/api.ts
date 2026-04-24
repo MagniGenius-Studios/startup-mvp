@@ -1,7 +1,28 @@
 import axios from 'axios'
 
+// Shared API client: central base URL, credential policy, and error normalization.
 const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'
 export const UNAUTHORIZED_EVENT = 'codebyte:unauthorized'
+
+type ApiValidationErrors = Record<string, string[] | undefined>
+
+interface ApiErrorPayload {
+  message?: string
+  statusCode?: number
+  errors?: ApiValidationErrors
+}
+
+export class ApiError extends Error {
+  statusCode: number
+  errors?: ApiValidationErrors
+
+  constructor(message: string, statusCode: number, errors?: ApiValidationErrors) {
+    super(message)
+    this.name = 'ApiError'
+    this.statusCode = statusCode
+    this.errors = errors
+  }
+}
 
 const isAuthEndpoint = (url: string | undefined) => {
   if (!url) {
@@ -11,6 +32,7 @@ const isAuthEndpoint = (url: string | undefined) => {
   return url.includes('/auth/')
 }
 
+// Axios instance used by all frontend data helpers.
 export const api = axios.create({
   baseURL,
   timeout: 8000,
@@ -20,14 +42,16 @@ export const api = axios.create({
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    const status = error?.response?.status
+    const status = Number(error?.response?.status ?? 500)
     const requestUrl = error?.config?.url as string | undefined
+    const payload = (error?.response?.data ?? {}) as ApiErrorPayload
 
+    // Broadcast auth expiry so auth context can force sign-in.
     if (status === 401 && !isAuthEndpoint(requestUrl) && typeof window !== 'undefined') {
       window.dispatchEvent(new Event(UNAUTHORIZED_EVENT))
     }
 
-    const message = error?.response?.data?.message || 'Unexpected API error'
-    return Promise.reject(new Error(message))
-  }
+    const message = payload.message || 'Unexpected API error'
+    return Promise.reject(new ApiError(message, payload.statusCode ?? status, payload.errors))
+  },
 )

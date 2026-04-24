@@ -8,6 +8,7 @@ import { AppShell } from '@/components/layout/AppShell'
 import { useAuth } from '@/lib/auth'
 import { fetchLearningLanguages, type LearningLanguage } from '@/lib/languages'
 
+// Learn page: first step that lists available languages.
 export default function LearnLanguagesPage() {
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
@@ -16,6 +17,7 @@ export default function LearnLanguagesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
+  // Redirect guests to login before showing learning content.
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/login')
@@ -27,6 +29,7 @@ export default function LearnLanguagesPage() {
       return
     }
 
+    // Fetch language cards once auth is confirmed.
     const load = async () => {
       setLoading(true)
       setError('')

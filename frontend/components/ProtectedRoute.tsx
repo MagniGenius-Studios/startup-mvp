@@ -9,11 +9,13 @@ interface ProtectedRouteProps {
   children: ReactNode
 }
 
+// Guard component: renders children only for authenticated users.
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, loading } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
+    // Redirect to login when auth check completes without a user.
     if (!loading && !user) {
       router.push('/login')
     }

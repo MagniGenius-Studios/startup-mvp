@@ -1,5 +1,6 @@
 import Link from 'next/link'
 
+// Final conversion section before footer.
 export const CTA = () => {
     return (
         <section className="relative border-t border-slate-800 py-28">

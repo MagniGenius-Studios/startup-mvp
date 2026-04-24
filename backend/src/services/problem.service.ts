@@ -1,13 +1,9 @@
 import { getPrismaClient } from '@config/db';
-import {
-  LANGUAGE_LABELS,
-  normalizeLanguage,
-  SUPPORTED_LANGUAGES,
-  type SupportedLanguage,
-} from '@constants/languages';
+import { LANGUAGE_LABELS, normalizeLanguage, SUPPORTED_LANGUAGES, type SupportedLanguage } from '@constants/languages';
 import type { Prisma } from '@prisma/client';
 import { AppError } from '@utils/AppError';
 
+// Problem catalog service: languages, tracks, and problem detail payloads.
 export type LanguageCodeMap = Record<SupportedLanguage, string>;
 
 export interface LanguageDto {
@@ -62,6 +58,7 @@ const resolveCodeMap = (jsonValue: Prisma.JsonValue | null, fallback: LanguageCo
   }
 
   for (const language of SUPPORTED_LANGUAGES) {
+    // Keep only known language keys from persisted JSON blobs.
     const value = jsonValue[language];
     if (typeof value === 'string' && value.length > 0) {
       resolved[language] = value;
@@ -101,29 +98,11 @@ const mergeLanguageLists = (primary: LanguageDto[], fallback: LanguageDto[]): La
   return Array.from(merged.values());
 };
 
-const resolveLegacyStarterCode = (rawValue: unknown, languageSlug: string): LanguageCodeMap => {
-  const resolvedFromMap = resolveCodeMap(rawValue as Prisma.JsonValue | null, DEFAULT_STARTER_CODE);
-  const normalizedLanguage = normalizeLanguage(languageSlug);
-
-  if (typeof rawValue === 'string' && normalizedLanguage) {
-    return {
-      ...resolvedFromMap,
-      [normalizedLanguage]: rawValue.length > 0 ? rawValue : resolvedFromMap[normalizedLanguage],
-    };
-  }
-
-  return resolvedFromMap;
-};
-
 export const listLanguages = async (): Promise<LanguageDto[]> => {
-  let prisma: any;
-  try {
-    prisma = getPrismaClient() as any;
-  } catch {
-    return DEFAULT_LANGUAGE_LIST;
-  }
+  const prisma = getPrismaClient();
 
   try {
+    // Preferred query path with explicit slug + stable ordering.
     const rows = await prisma.language.findMany({
       select: {
         slug: true,
@@ -142,6 +121,7 @@ export const listLanguages = async (): Promise<LanguageDto[]> => {
     return mergeLanguageLists(normalized, DEFAULT_LANGUAGE_LIST);
   } catch {
     try {
+      // Legacy fallback supports older schemas that only exposed `name`.
       const legacyRows = await prisma.$queryRaw<Array<{ name: string }>>`
         SELECT "name"
         FROM "Language"
@@ -163,245 +143,122 @@ export const listLanguages = async (): Promise<LanguageDto[]> => {
 };
 
 export const listTracksByLanguage = async (languageSlug: string): Promise<TrackSummaryDto[]> => {
-  const prisma = getPrismaClient() as any;
+  const prisma = getPrismaClient();
 
+  // Reject unknown language slugs early to avoid broad queries.
   const normalizedSlug = normalizeLanguage(languageSlug);
   if (!normalizedSlug) {
     return [];
   }
 
-  try {
-    const language = await prisma.language.findUnique({
-      where: { slug: normalizedSlug },
-      select: { id: true, slug: true },
-    }) as { id: string; slug: string } | null;
-
-    if (!language) {
-      return [];
-    }
-
-    const tracks = await prisma.track.findMany({
-      where: { languageId: language.id },
-      select: {
-        id: true,
-        title: true,
-        description: true,
+  // Fetch only tracks mapped to the selected language.
+  const tracks = await prisma.track.findMany({
+    where: {
+      language: {
+        slug: normalizedSlug,
       },
-      orderBy: [{ createdAt: 'asc' }, { title: 'asc' }],
-    }) as Array<{ id: string; title: string; description: string | null }>;
+    },
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      language: {
+        select: {
+          slug: true,
+        },
+      },
+    },
+    orderBy: [{ createdAt: 'asc' }, { title: 'asc' }],
+  });
 
-    return tracks.map((track) => ({
-      id: track.id,
-      title: track.title,
-      description: track.description ?? '',
-      languageSlug: language.slug,
-    }));
-  } catch {
-    const languageName = LANGUAGE_LABELS[normalizedSlug];
-
-    try {
-      const categoryRows = await prisma.$queryRaw<Array<{ id: string; name: string }>>`
-        SELECT c."id", c."name"
-        FROM "Category" c
-        INNER JOIN "Language" l ON l."id" = c."languageId"
-        WHERE LOWER(l."name") = LOWER(${languageName})
-        ORDER BY c."name" ASC
-      `;
-
-      return categoryRows.map((row: { id: string; name: string }) => ({
-        id: row.id,
-        title: row.name,
-        description: `${languageName} learning path`,
-        languageSlug: normalizedSlug,
-      }));
-    } catch {
-      return [];
-    }
-  }
+  return tracks.map((track) => ({
+    id: track.id,
+    title: track.title,
+    description: track.description ?? '',
+    languageSlug: track.language.slug,
+  }));
 };
 
 export const listProblemsByTrack = async (trackId: string): Promise<ProblemSummaryDto[]> => {
-  const prisma = getPrismaClient() as any;
+  const prisma = getPrismaClient();
 
-  try {
-    const rows = await prisma.problem.findMany({
-      where: { trackId },
-      select: {
-        id: true,
-        title: true,
-        difficulty: true,
-        position: true,
-      },
-      orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
-    }) as Array<{ id: string; title: string; difficulty: string; position: number }>;
+  // Guard with explicit 404 so UI can show track-level errors cleanly.
+  const trackExists = await prisma.track.findUnique({
+    where: { id: trackId },
+    select: { id: true },
+  });
 
-    if (rows.length > 0) {
-      return rows.map((row) => ({
-        id: row.id,
-        title: row.title,
-        difficulty: row.difficulty,
-        position: row.position,
-      }));
-    }
-
-    const trackExists = await prisma.track.findUnique({
-      where: { id: trackId },
-      select: { id: true },
-    }) as { id: string } | null;
-
-    if (trackExists) {
-      return [];
-    }
-  } catch {
-    // Fallback to legacy Category-based problems below.
-  }
-
-  try {
-    const legacyRows = await prisma.$queryRaw<
-      Array<{ id: string; title: string; difficulty: string | null; position: number | null }>
-    >`
-      SELECT p."id", p."title", p."difficulty", p."position"
-      FROM "Problem" p
-      WHERE p."categoryId" = ${trackId}
-      ORDER BY p."position" ASC, p."createdAt" ASC
-    `;
-
-    if (legacyRows.length === 0) {
-      throw new AppError('Track not found', 404);
-    }
-
-    return legacyRows.map((row: { id: string; title: string; difficulty: string | null; position: number | null }) => ({
-      id: row.id,
-      title: row.title,
-      difficulty: row.difficulty ?? 'Easy',
-      position: row.position ?? 0,
-    }));
-  } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
+  if (!trackExists) {
     throw new AppError('Track not found', 404);
   }
+
+  // Fetch lightweight summary list sorted by author-defined position.
+  const rows = await prisma.problem.findMany({
+    where: { trackId },
+    select: {
+      id: true,
+      title: true,
+      difficulty: true,
+      position: true,
+    },
+    orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
+  });
+
+  return rows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    difficulty: row.difficulty,
+    position: row.position,
+  }));
 };
 
 export const getProblemById = async (id: string): Promise<ProblemDetailDto> => {
-  const prisma = getPrismaClient() as any;
+  const prisma = getPrismaClient();
 
-  try {
-    const problem = await prisma.problem.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        trackId: true,
-        starterCode: true,
-        difficulty: true,
-        position: true,
-        track: {
-          select: {
-            title: true,
-            language: {
-              select: {
-                slug: true,
-              },
+  // Load problem + track + language + concepts in one query.
+  const problem = await prisma.problem.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      trackId: true,
+      starterCode: true,
+      difficulty: true,
+      position: true,
+      track: {
+        select: {
+          title: true,
+          language: {
+            select: {
+              slug: true,
             },
           },
         },
-        concepts: {
-          select: {
-            concept: { select: { name: true } },
-          },
+      },
+      concepts: {
+        select: {
+          concept: { select: { name: true } },
         },
       },
-    }) as
-      | {
-          id: string;
-          title: string;
-          description: string;
-          trackId: string;
-          starterCode: Prisma.JsonValue | null;
-          difficulty: string;
-          position: number;
-          track: {
-            title: string;
-            language: {
-              slug: string;
-            };
-          };
-          concepts: Array<{
-            concept: {
-              name: string;
-            };
-          }>;
-        }
-      | null;
+    },
+  });
 
-    if (!problem) {
-      throw new AppError('Problem not found', 404);
-    }
-
-    return {
-      id: problem.id,
-      title: problem.title,
-      description: problem.description,
-      trackId: problem.trackId,
-      trackTitle: problem.track.title,
-      languageSlug: problem.track.language.slug,
-      starterCode: resolveCodeMap(problem.starterCode, DEFAULT_STARTER_CODE),
-      difficulty: problem.difficulty,
-      position: problem.position,
-      concepts: problem.concepts.map((c) => c.concept.name),
-    };
-  } catch {
-    const legacyRows = await prisma.$queryRaw<
-      Array<{
-        id: string;
-        title: string;
-        description: string | null;
-        starterCode: unknown;
-        difficulty: string | null;
-        position: number | null;
-        trackId: string | null;
-        trackTitle: string | null;
-        languageName: string | null;
-      }>
-    >`
-      SELECT
-        p."id",
-        p."title",
-        p."description",
-        p."starterCode",
-        p."difficulty",
-        p."position",
-        c."id" AS "trackId",
-        c."name" AS "trackTitle",
-        l."name" AS "languageName"
-      FROM "Problem" p
-      LEFT JOIN "Category" c ON c."id" = p."categoryId"
-      LEFT JOIN "Language" l ON l."id" = p."languageId"
-      WHERE p."id" = ${id}
-      LIMIT 1
-    `;
-
-    const legacyProblem = legacyRows[0];
-    if (!legacyProblem) {
-      throw new AppError('Problem not found', 404);
-    }
-
-    const languageSlug = toSafeSlug(legacyProblem.languageName ?? 'python');
-
-    return {
-      id: legacyProblem.id,
-      title: legacyProblem.title,
-      description: legacyProblem.description ?? '',
-      trackId: legacyProblem.trackId ?? legacyProblem.id,
-      trackTitle: legacyProblem.trackTitle ?? 'Practice Path',
-      languageSlug,
-      starterCode: resolveLegacyStarterCode(legacyProblem.starterCode, languageSlug),
-      difficulty: legacyProblem.difficulty ?? 'Easy',
-      position: legacyProblem.position ?? 0,
-      concepts: [],
-    };
+  if (!problem) {
+    throw new AppError('Problem not found', 404);
   }
+
+  // Normalize starter code so every supported language always has a template.
+  return {
+    id: problem.id,
+    title: problem.title,
+    description: problem.description,
+    trackId: problem.trackId,
+    trackTitle: problem.track.title,
+    languageSlug: problem.track.language.slug,
+    starterCode: resolveCodeMap(problem.starterCode, DEFAULT_STARTER_CODE),
+    difficulty: problem.difficulty,
+    position: problem.position,
+    concepts: problem.concepts.map((c) => c.concept.name),
+  };
 };

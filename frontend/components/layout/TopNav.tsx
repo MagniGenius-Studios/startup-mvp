@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 
 import { useAuth } from '@/lib/auth'
 
+// Top navigation: primary app links + user actions for signed-in sessions.
 const navLinks = [
   { href: '/dashboard', label: 'Dashboard', icon: '◉' },
   { href: '/learn', label: 'Learn', icon: '📚' },
@@ -42,6 +43,7 @@ export function TopNav() {
 
         <div className="flex items-center gap-1">
           {navLinks.map((link) => {
+            // Highlight current section for quick orientation.
             const isActive = pathname?.startsWith(link.href)
             return (
               <Link

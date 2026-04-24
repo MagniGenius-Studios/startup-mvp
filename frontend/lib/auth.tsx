@@ -29,14 +29,16 @@ interface AuthContextValue {
     logout: () => Promise<void>
 }
 
+// Auth context: keeps session state and exposes login/register/logout actions.
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+    // `user` and `loading` drive route guards and nav state across the app.
     const [user, setUser] = useState<User | null>(null)
     const [loading, setLoading] = useState(true)
     const router = useRouter()
 
-    // Check session on mount
+    // API call: restore existing session from cookie on initial app load.
     useEffect(() => {
         const checkAuth = async () => {
             try {
@@ -51,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         void checkAuth()
     }, [])
 
-    // Handle global unauthorized events (e.g., expired token)
+    // React to 401 events emitted by API interceptor.
     useEffect(() => {
         const handleUnauthorized = () => {
             setUser(null)
@@ -65,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const login = useCallback(
         async (email: string, password: string) => {
+            // API call: creates session and returns user payload.
             const { data } = await api.post('/auth/login', { email, password })
             setUser(data.user)
             router.push('/dashboard')
@@ -74,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const register = useCallback(
         async (name: string, email: string, password: string) => {
+            // API call: creates account and starts session.
             const { data } = await api.post('/auth/register', { name, email, password })
             setUser(data.user)
             router.push('/dashboard')
@@ -83,6 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const logout = useCallback(async () => {
         try {
+            // API call: clears server-side auth cookie.
             await api.post('/auth/logout')
         } catch {
             // ignore logout errors

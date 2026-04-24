@@ -36,6 +36,7 @@ const features = [
     },
 ]
 
+// Features section: explains the product workflow in three steps.
 export const Features = () => {
     return (
         <section id="how-it-works" className="relative border-t border-slate-800 py-24">

@@ -53,10 +53,36 @@ main {
 }
 
 .card-interactive {
-  @apply card cursor-pointer transition-all duration-200;
+  @apply cursor-pointer rounded-2xl border border-white/[0.06] bg-surface-1 p-6 shadow-card transition-all duration-200;
 }
 .card-interactive:hover {
   @apply border-accent/20 bg-surface-2 shadow-glow -translate-y-0.5;
+}
+
+/* ─── Workspace Primitives ──────────────────────── */
+
+.workspace-panel-header {
+  @apply border-b border-white/[0.06] bg-surface-0;
+}
+
+.workspace-alert-error {
+  @apply border-danger/20 bg-danger/5 text-danger;
+}
+
+.workspace-button-primary {
+  @apply rounded-md bg-sky px-5 py-2 text-sm font-semibold text-white transition-colors;
+}
+
+.workspace-button-secondary {
+  @apply rounded-md border border-slate-600 bg-transparent px-4 py-2 text-sm font-medium text-slate-300 transition-colors;
+}
+
+.workspace-button-primary:hover {
+  @apply bg-sky/90;
+}
+
+.workspace-button-secondary:hover {
+  @apply border-sky/50 text-sky;
 }
 
 /* ─── Badges ───────────────────────────────────────── */
@@ -66,15 +92,15 @@ main {
 }
 
 .badge-mastered {
-  @apply badge border border-emerald-500/20 bg-emerald-500/10 text-emerald-400;
+  @apply inline-flex items-center rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold tracking-wide text-emerald-400;
 }
 
 .badge-learning {
-  @apply badge border border-amber-400/20 bg-amber-400/10 text-amber-300;
+  @apply inline-flex items-center rounded-full border border-amber-400/20 bg-amber-400/10 px-2.5 py-0.5 text-[11px] font-semibold tracking-wide text-amber-300;
 }
 
 .badge-new {
-  @apply badge border border-white/10 bg-white/5 text-text-muted;
+  @apply inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 text-[11px] font-semibold tracking-wide text-text-muted;
 }
 
 /* ─── Progress bars ────────────────────────────────── */

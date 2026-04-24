@@ -6,14 +6,16 @@ import { useEffect, useState } from 'react'
 import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/lib/auth'
 
+// Login page: collects credentials and starts authenticated session.
 export default function LoginPage() {
   const { login, user, loading: authLoading } = useAuth()
+  // Form state for controlled inputs and UX feedback.
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  // Redirect if already logged in
+  // Skip login screen when session is already active.
   useEffect(() => {
     if (!authLoading && user) {
       window.location.href = '/dashboard'
@@ -26,6 +28,7 @@ export default function LoginPage() {
     setError('')
 
     try {
+      // API call handled by auth context so user state stays centralized.
       await login(email, password)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed. Please try again.')

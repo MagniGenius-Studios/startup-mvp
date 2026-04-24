@@ -1,13 +1,16 @@
 import { listProblemProgress } from '@controllers/progressController';
-import { authenticate } from '@middleware/auth';
+import { asyncHandler } from '@middleware/asyncHandler';
+import { authGuard } from '@middleware/auth';
+import { validateQuery } from '@middleware/validate';
 import { Router } from 'express';
 
+import { problemProgressQuerySchema } from '../validators/progress.validators';
+
+// Progress routes: per-problem status map for current user.
 const router = Router();
 
-router.get('/problems', (req, res, next) => {
-  void authenticate(req, res, () => {
-    void listProblemProgress(req, res, next);
-  });
-});
+router.use(authGuard);
+
+router.get('/problems', validateQuery(problemProgressQuerySchema), asyncHandler(listProblemProgress));
 
 export default router;

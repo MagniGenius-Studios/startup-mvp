@@ -6,6 +6,7 @@ interface PageShellProps extends PropsWithChildren {
   width?: Width
 }
 
+// Simple centered wrapper used by auth/public pages.
 const widthMap: Record<Width, string> = {
   sm: 'max-w-2xl',
   md: 'max-w-4xl',

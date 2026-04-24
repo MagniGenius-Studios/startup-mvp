@@ -1,9 +1,11 @@
 'use client'
 
 import dynamic from 'next/dynamic'
+import { memo, useCallback, useMemo } from 'react'
 
 import { LANGUAGE_META, SUPPORTED_LANGUAGES, type Language } from '@/lib/languages'
 
+// Editor panel: language selector + Monaco editor instance.
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false,
   loading: () => (
@@ -13,7 +15,22 @@ const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
   ),
 })
 
-// ── Props ──
+const BASE_EDITOR_OPTIONS = {
+  fontSize: 13,
+  lineHeight: 20,
+  fontFamily: '"JetBrains Mono", "Fira Code", Menlo, monospace',
+  minimap: { enabled: false },
+  scrollBeyondLastLine: false,
+  padding: { top: 16, bottom: 16 },
+  bracketPairColorization: { enabled: true },
+  smoothScrolling: true,
+  cursorBlinking: 'smooth' as const,
+  renderLineHighlight: 'gutter' as const,
+  scrollbar: {
+    verticalScrollbarSize: 6,
+    horizontalScrollbarSize: 6,
+  },
+}
 
 interface CodeEditorPanelProps {
   code: string
@@ -23,7 +40,7 @@ interface CodeEditorPanelProps {
   onLanguageChange: (lang: Language) => void
 }
 
-export default function CodeEditorPanel({
+function CodeEditorPanelComponent({
   code,
   language,
   readOnly = false,
@@ -31,13 +48,23 @@ export default function CodeEditorPanel({
   onLanguageChange,
 }: CodeEditorPanelProps) {
   const meta = LANGUAGE_META[language]
+  // Recompute editor options only when read-only mode changes.
+  const options = useMemo(
+    () => ({
+      ...BASE_EDITOR_OPTIONS,
+      readOnly,
+    }),
+    [readOnly],
+  )
+
+  const handleCodeChange = useCallback((value: string | undefined) => {
+    onCodeChange(value ?? '')
+  }, [onCodeChange])
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden bg-[#0d1117]">
-      {/* Toolbar */}
-      <div className="flex h-10 shrink-0 items-center justify-between border-b border-slate-800 bg-[#0a0e1a] px-3">
+      <div className="workspace-panel-header flex h-10 shrink-0 items-center justify-between px-3">
         <div className="flex items-center gap-2">
-          {/* Language selector */}
           <div className="relative">
             <select
               value={language}
@@ -66,44 +93,26 @@ export default function CodeEditorPanel({
               />
             </svg>
           </div>
-
-          {/* Filename */}
-          <span className="font-mono text-[11px] text-slate-600">
-            {meta.extension}
-          </span>
+          <span className="font-mono text-[11px] text-slate-600">{meta.extension}</span>
         </div>
       </div>
 
-      {/* Monaco Editor */}
       <div className="flex-1">
         <MonacoEditor
           height="100%"
           language={meta.monacoId}
           theme="vs-dark"
           value={code}
-          onChange={(value) => onCodeChange(value ?? '')}
-          options={{
-            fontSize: 13,
-            lineHeight: 20,
-            fontFamily: '"JetBrains Mono", "Fira Code", Menlo, monospace',
-            minimap: { enabled: false },
-            scrollBeyondLastLine: false,
-            padding: { top: 16, bottom: 16 },
-            bracketPairColorization: { enabled: true },
-            smoothScrolling: true,
-            cursorBlinking: 'smooth',
-            readOnly,
-            renderLineHighlight: 'gutter',
-            scrollbar: {
-              verticalScrollbarSize: 6,
-              horizontalScrollbarSize: 6,
-            },
-          }}
+          onChange={handleCodeChange}
+          options={options}
         />
       </div>
     </div>
   )
 }
 
+const CodeEditorPanel = memo(CodeEditorPanelComponent)
+
+export default CodeEditorPanel
 export { LANGUAGE_META, SUPPORTED_LANGUAGES as LANGUAGES }
 export type { Language }

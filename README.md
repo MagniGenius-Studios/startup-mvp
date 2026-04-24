@@ -16,7 +16,7 @@ cp backend/.env.example backend/.env
 cp frontend/.env.local.example frontend/.env.local
 ```
 
-Backend `.env` keys: `PORT`, `DATABASE_URL`, `JWT_SECRET`, `LLM_API_KEY`, `OAUTH_GOOGLE_CLIENT_ID`, `OAUTH_GOOGLE_CLIENT_SECRET`, `EMAIL_PROVIDER_API_KEY`.
+Backend `.env` keys: `NODE_ENV`, `PORT`, `DATABASE_URL`, `JWT_SECRET`, `GROQ_API_KEY`, `FRONTEND_URL`, `JSON_BODY_LIMIT`, `HTTP_LOG_FORMAT`, `AUTH_COOKIE_MAX_AGE_MS`, `OAUTH_GOOGLE_CLIENT_ID`, `OAUTH_GOOGLE_CLIENT_SECRET`, `EMAIL_PROVIDER_API_KEY`.
 Frontend `.env.local` keys: `NEXT_PUBLIC_API_URL`.
 
 ## Backend (Express + Prisma)

@@ -22,6 +22,7 @@ const tracks = [
     },
 ]
 
+// Tracks section: showcases sample learning paths on landing page.
 export const Tracks = () => {
     return (
         <section id="tracks" className="relative border-t border-slate-800 py-24">

@@ -10,8 +10,7 @@ import { evaluateSubmission } from './evaluation.service';
 import { upsertProblemProgress } from './progress.service';
 import { updateStreak } from './streak.service';
 
-// ─── Types ──────────────────────────────────────────────────────
-
+// Submission service: evaluates code, stores attempt state, and returns mentor feedback.
 export interface LatestSubmissionDto {
     code: string;
     language: string;
@@ -38,8 +37,6 @@ export interface SubmissionHistoryDto {
     createdAt: Date;
 }
 
-// ─── Main Service ───────────────────────────────────────────────
-
 export const createAndAnalyzeSubmission = async (
     userId: string,
     input: SubmitCodeInput,
@@ -51,7 +48,7 @@ export const createAndAnalyzeSubmission = async (
         throw new AppError('Language not supported', 400);
     }
 
-    // 1. Verify the problem exists and get its description + reference solution
+    // Load problem metadata + reference solution before evaluating code.
     const problem = await prisma.problem.findUnique({
         where: { id: input.problemId },
         select: {
@@ -74,7 +71,7 @@ export const createAndAnalyzeSubmission = async (
         throw new AppError('Problem not found', 404);
     }
 
-    // 2. Create submission with ANALYZING status
+    // Persist early so each attempt has a row even if downstream steps fail.
     const submission = await prisma.submission.create({
         data: {
             userId,
@@ -89,7 +86,7 @@ export const createAndAnalyzeSubmission = async (
     });
 
     try {
-        // 3. Evaluate correctness using the selected language's canonical solution.
+        // Deterministic grading runs before AI feedback generation.
         let evaluationResult;
         try {
             evaluationResult = evaluateSubmission({
@@ -110,7 +107,7 @@ export const createAndAnalyzeSubmission = async (
 
         console.info(`[Submission] Correctness: ${isCorrect ? '✅ CORRECT' : '❌ INCORRECT'}`);
 
-        // 4. Generate structured AI feedback using canonical solution comparison
+        // Build mentor response from user code vs canonical solution.
         const problemDescription = [problem.title, problem.description ?? ''].filter(Boolean).join('\n\n');
         const conceptNames = problem.concepts.map((c) => c.concept.name);
         const feedbackResult = await generateExplainableFeedback(
@@ -122,7 +119,7 @@ export const createAndAnalyzeSubmission = async (
             normalizedLanguage,
         );
 
-        // 5. Store the structured feedback in the database.
+        // Feedback persistence is optional for backward-compatible schemas.
         try {
             await prisma.aiFeedback.create({
                 data: {
@@ -138,7 +135,7 @@ export const createAndAnalyzeSubmission = async (
             }
         }
 
-        // 6. Update submission with score and correctness flag
+        // Mark submission as completed once evaluation + feedback succeed.
         const score = isCorrect ? 100 : 0;
         await prisma.submission.update({
             where: { id: submission.id },
@@ -149,20 +146,20 @@ export const createAndAnalyzeSubmission = async (
             },
         });
 
-        // 7. Update progress status for this problem
+        // Sync problem progress so learn/dashboard pages update instantly.
         await upsertProblemProgress(userId, input.problemId, isCorrect);
 
-        // 8. Update concept mastery scores
+        // Best-effort analytics updates should not fail the submission request.
         await updateConceptMastery(userId, input.problemId, isCorrect).catch((err) => {
             console.error('[Submission] Concept mastery update failed:', err);
         });
 
-        // 9. Update daily streak
+        // Streak updates are also best-effort.
         await updateStreak(userId).catch((err) => {
             console.error('[Submission] Streak update failed:', err);
         });
 
-        // 9. Return submission payload with output comparison
+        // Return data needed by mentor panel + output comparison UI.
         return {
             submissionId: submission.id,
             isCorrect,
@@ -173,7 +170,7 @@ export const createAndAnalyzeSubmission = async (
             expectedOutput,
         };
     } catch (error) {
-        // Mark submission as ERROR if anything goes wrong
+        // Keep failed attempts out of ANALYZING state.
         await prisma.submission
             .update({
                 where: { id: submission.id },
@@ -185,6 +182,7 @@ export const createAndAnalyzeSubmission = async (
     }
 };
 
+// Returns last completed submission for workspace prefill.
 export const getLatestSubmissionForProblem = async (
     userId: string,
     problemId: string,
@@ -230,6 +228,7 @@ export const getLatestSubmissionForProblem = async (
     };
 };
 
+// Returns recent completed attempts for the history timeline.
 export const getSubmissionHistory = async (
     userId: string,
     problemId: string,

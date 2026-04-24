@@ -1,5 +1,7 @@
 'use client'
 
+import { memo } from 'react'
+
 import type { ProblemDetail, ProblemSummary } from '@/lib/problems'
 import type { ProblemProgressStatus } from '@/lib/progress'
 
@@ -11,6 +13,7 @@ interface ProblemPanelProps {
   loading: boolean
 }
 
+// Left sidebar: problem navigation list + quick metadata preview.
 function getDot(status: ProblemProgressStatus | undefined): React.ReactNode {
   if (status === 'COMPLETED') {
     return <div className="h-2 w-2 shrink-0 rounded-full bg-success" title="Mastered" />
@@ -28,7 +31,7 @@ function getDifficultyClass(difficulty?: string): string {
   return 'text-danger'
 }
 
-export default function ProblemPanel({
+function ProblemPanelComponent({
   problems,
   problemProgressById,
   currentProblem,
@@ -38,7 +41,7 @@ export default function ProblemPanel({
   return (
     <div className="flex h-full flex-col">
       {/* Problem list */}
-      <div className="shrink-0 border-b border-white/[0.06] px-4 py-3">
+      <div className="workspace-panel-header shrink-0 px-4 py-3">
         <p className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Problems</p>
       </div>
 
@@ -104,3 +107,7 @@ export default function ProblemPanel({
     </div>
   )
 }
+
+const ProblemPanel = memo(ProblemPanelComponent)
+
+export default ProblemPanel

@@ -4,6 +4,7 @@ import '../styles/globals.css'
 
 import { AuthProvider } from '@/lib/auth'
 
+// Root layout: global styles + auth context for all pages.
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">

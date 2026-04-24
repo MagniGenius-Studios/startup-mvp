@@ -1,5 +1,6 @@
 import Link from 'next/link'
 
+// Hero section: value proposition + visual preview + primary CTA.
 export const Hero = () => {
     return (
         <section className="relative overflow-hidden pt-32 pb-20">

@@ -17,6 +17,9 @@ interface LearnTrackProblemsPageProps {
   }
 }
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+// Learn track page: problem list with completion dots for selected track.
 function getDot(status: ProblemProgressStatus | undefined): React.ReactNode {
   if (status === 'COMPLETED') return <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-success" />
   if (status === 'IN_PROGRESS') return <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-warning" />
@@ -40,7 +43,7 @@ export default function LearnTrackProblemsPage({ params }: LearnTrackProblemsPag
   const [error, setError] = useState('')
 
   const languageSlug = params.language
-  const trackId = params.track
+  const trackId = params.track.trim()
 
   const languageLabel = useMemo(() => {
     const normalized = normalizeLanguage(languageSlug)
@@ -48,6 +51,7 @@ export default function LearnTrackProblemsPage({ params }: LearnTrackProblemsPag
   }, [languageSlug])
 
   useEffect(() => {
+    // Redirect unauthenticated users before data fetches.
     if (!authLoading && !user) {
       router.push('/login')
     }
@@ -58,9 +62,19 @@ export default function LearnTrackProblemsPage({ params }: LearnTrackProblemsPag
       return
     }
 
+    // Fetch problems + progress together so dots align with list rows.
     const load = async () => {
       setLoading(true)
       setError('')
+      setProblems([])
+      setProgressById({})
+
+      if (!UUID_PATTERN.test(trackId)) {
+        // Fast-fail malformed route params before calling backend.
+        setError('Invalid track selected.')
+        setLoading(false)
+        return
+      }
 
       try {
         const [problemRows, progressRows] = await Promise.all([

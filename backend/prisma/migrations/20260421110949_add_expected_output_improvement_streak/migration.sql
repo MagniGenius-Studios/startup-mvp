@@ -1,3 +1,4 @@
+-- Adds expected output support, feedback improvements, and streak fields.
 -- AlterTable
 ALTER TABLE "AiFeedback" ADD COLUMN     "improvement" TEXT;
 

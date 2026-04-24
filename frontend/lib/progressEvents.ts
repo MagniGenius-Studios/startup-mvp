@@ -5,6 +5,7 @@ export interface ProgressUpdatedDetail {
   language?: string
 }
 
+// Emits browser event so other pages can refresh after workspace submission.
 export function dispatchProgressUpdated(detail: ProgressUpdatedDetail) {
   if (typeof window === 'undefined') {
     return

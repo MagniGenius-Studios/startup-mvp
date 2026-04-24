@@ -13,6 +13,7 @@ import {
 } from '@/lib/dashboard'
 import { PROGRESS_UPDATED_EVENT } from '@/lib/progressEvents'
 
+// Dashboard page: learner snapshot with progress, streak, and recommendations.
 function getGreeting(): string {
   const hour = new Date().getHours()
   if (hour < 12) return 'Good morning'
@@ -48,11 +49,13 @@ export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
 
+  // Dashboard fetch state used by loading and retry UI.
   const [dashboard, setDashboard] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
+    // Guard private route access when auth finishes loading.
     if (!authLoading && !user) {
       router.push('/login')
     }
@@ -68,6 +71,7 @@ export default function DashboardPage() {
     setLoading(true)
     setError('')
     try {
+      // Pull aggregate dashboard payload from backend service.
       const data = await fetchDashboard()
       setDashboard(data)
     } catch (err) {
@@ -79,6 +83,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (authLoading || !user) return
+    // Initial load + background refresh keep stats current without manual reload.
     void loadDashboard()
 
     const intervalId = window.setInterval(() => void loadDashboard(), 30000)

@@ -1,5 +1,7 @@
 'use client'
 
+import { memo } from 'react'
+
 import type { CodeExplanationResponse } from '@/lib/explanations'
 
 interface ExplanationPanelProps {
@@ -9,12 +11,14 @@ interface ExplanationPanelProps {
   explanation: CodeExplanationResponse | null
 }
 
-export default function ExplanationPanel({
+// Inline explanation panel shown after "Explain My Code" action.
+function ExplanationPanelComponent({
   visible,
   loading,
   error,
   explanation,
 }: ExplanationPanelProps) {
+  // Keep layout compact until user explicitly requests explanation.
   if (!visible) {
     return null
   }
@@ -61,3 +65,7 @@ export default function ExplanationPanel({
     </div>
   )
 }
+
+const ExplanationPanel = memo(ExplanationPanelComponent)
+
+export default ExplanationPanel

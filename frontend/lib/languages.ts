@@ -1,5 +1,6 @@
 import { api } from './api'
 
+// Language helpers: canonical language metadata + learning catalog requests.
 export const SUPPORTED_LANGUAGES = ['python', 'cpp', 'java', 'javascript', 'go'] as const
 
 export type Language = (typeof SUPPORTED_LANGUAGES)[number]
@@ -72,6 +73,7 @@ export const resolveLanguageCodeMap = (
   rawValue: unknown,
   fallback: LanguageCodeMap = DEFAULT_CODE_TEMPLATES,
 ): LanguageCodeMap => {
+  // Ensures editor always has starter code for each supported language.
   const resolved: LanguageCodeMap = { ...fallback }
 
   if (!isObjectRecord(rawValue)) {
@@ -89,11 +91,13 @@ export const resolveLanguageCodeMap = (
 }
 
 export async function fetchLearningLanguages(): Promise<LearningLanguage[]> {
+  // API call: list learnable languages for `/learn`.
   const { data } = await api.get<{ languages: LearningLanguage[] }>('/languages')
   return data.languages
 }
 
 export async function fetchTracksByLanguage(languageSlug: string): Promise<LearningTrack[]> {
+  // API call: list tracks available under selected language slug.
   const { data } = await api.get<{ tracks: LearningTrack[] }>(`/tracks/${languageSlug}`)
   return data.tracks
 }

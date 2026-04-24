@@ -1,80 +1,55 @@
+import { env } from '@config/env';
+import { requireUser } from '@middleware/auth';
 import * as authService from '@services/auth.service';
-import { NextFunction, Request, Response } from 'express';
+import { Request, Response } from 'express';
 
-import { loginSchema, registerSchema } from '../validators/auth.validators';
+import type { LoginInput, RegisterInput } from '../validators/auth.validators';
 
+// Auth controller: registration, login, session lookup, and logout endpoints.
 const COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
+  secure: env.nodeEnv === 'production',
   sameSite: 'lax' as const,
-  maxAge: 24 * 60 * 60 * 1000, // 24 hours
+  maxAge: env.authCookieMaxAgeMs,
   path: '/',
 };
 
-export const register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    const parsed = registerSchema.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({
-        message: 'Validation failed',
-        errors: parsed.error.flatten().fieldErrors,
-      });
-      return;
-    }
+// Handles POST /auth/register.
+// Validates input -> creates user/token via service -> returns cookie + user payload.
+export const register = async (req: Request, res: Response): Promise<void> => {
+  const input = req.body as RegisterInput;
+  const { user, token } = await authService.registerUser(input);
 
-    const { user, token } = await authService.registerUser(parsed.data);
-
-    res.cookie('token', token, COOKIE_OPTIONS);
-
-    res.status(201).json({
-      message: 'Registration successful',
-      user,
-      token,
-    });
-  } catch (error) {
-    next(error);
-  }
+  res.cookie('token', token, COOKIE_OPTIONS);
+  res.status(201).json({
+    message: 'Registration successful',
+    user,
+    token,
+  });
 };
 
-export const login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    const parsed = loginSchema.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({
-        message: 'Validation failed',
-        errors: parsed.error.flatten().fieldErrors,
-      });
-      return;
-    }
+// Handles POST /auth/login.
+// Validates credentials -> gets token from service -> returns cookie + user payload.
+export const login = async (req: Request, res: Response): Promise<void> => {
+  const input = req.body as LoginInput;
+  const { user, token } = await authService.loginUser(input);
 
-    const { user, token } = await authService.loginUser(parsed.data);
-
-    res.cookie('token', token, COOKIE_OPTIONS);
-
-    res.status(200).json({
-      message: 'Login successful',
-      user,
-      token,
-    });
-  } catch (error) {
-    next(error);
-  }
+  res.cookie('token', token, COOKIE_OPTIONS);
+  res.status(200).json({
+    message: 'Login successful',
+    user,
+    token,
+  });
 };
 
-export const getMe = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    if (!req.user) {
-      res.status(401).json({ message: 'Unauthorized' });
-      return;
-    }
-
-    res.status(200).json({ user: req.user });
-  } catch (error) {
-    next(error);
-  }
+// Handles GET /auth/me by returning user attached by auth middleware.
+export const getMe = (req: Request, res: Response): void => {
+  const user = requireUser(req);
+  res.status(200).json({ user });
 };
 
-export const logout = (_req: Request, res: Response) => {
+// Handles POST /auth/logout by clearing auth cookie.
+export const logout = (_req: Request, res: Response): void => {
   res.clearCookie('token', { path: '/' });
-  return res.status(200).json({ message: 'Logged out successfully' });
+  res.status(200).json({ message: 'Logged out successfully' });
 };

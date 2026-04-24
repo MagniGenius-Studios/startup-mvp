@@ -4,11 +4,13 @@ import { createApp } from './app';
 import { connectDatabase, disconnectDatabase } from './config/db';
 import { env } from './config/env';
 
+// HTTP bootstrap: connect DB, start server, and handle graceful shutdown.
 const app = createApp();
 const server = http.createServer(app);
 
 const start = async () => {
   try {
+    // Ensure DB is reachable before accepting traffic.
     await connectDatabase();
     server.listen(env.port, () => {
       console.info(`API listening on port ${env.port}`);
@@ -21,6 +23,7 @@ const start = async () => {
 
 void start();
 
+// Closes DB + server when process receives termination signals.
 const shutdown = async () => {
   console.info('Shutting down gracefully...');
   await disconnectDatabase();

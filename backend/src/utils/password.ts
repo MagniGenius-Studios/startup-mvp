@@ -1,14 +1,16 @@
-import bcrypt from 'bcrypt';
+import { compare, hash } from 'bcrypt';
 
 const SALT_ROUNDS = 12;
 
+// Hashes plaintext passwords before storage.
 export const hashPassword = async (plainPassword: string): Promise<string> => {
-    return bcrypt.hash(plainPassword, SALT_ROUNDS);
+    return hash(plainPassword, SALT_ROUNDS);
 };
 
+// Compares login password with stored bcrypt hash.
 export const comparePassword = async (
     plainPassword: string,
     hashedPassword: string,
 ): Promise<boolean> => {
-    return bcrypt.compare(plainPassword, hashedPassword);
+    return compare(plainPassword, hashedPassword);
 };

@@ -14,6 +14,7 @@ interface LearnTracksPageProps {
   }
 }
 
+// Learn language page: shows all tracks for one language slug.
 export default function LearnTracksPage({ params }: LearnTracksPageProps) {
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
@@ -24,11 +25,13 @@ export default function LearnTracksPage({ params }: LearnTracksPageProps) {
 
   const languageSlug = params.language
   const languageLabel = useMemo(() => {
+    // Normalize URL aliases (js, c++) into display-safe labels.
     const normalized = normalizeLanguage(languageSlug)
     return normalized ? LANGUAGE_META[normalized].label : languageSlug
   }, [languageSlug])
 
   useEffect(() => {
+    // Enforce authentication for all learn routes.
     if (!authLoading && !user) {
       router.push('/login')
     }
@@ -39,6 +42,7 @@ export default function LearnTracksPage({ params }: LearnTracksPageProps) {
       return
     }
 
+    // Fetch tracks whenever selected language changes.
     const load = async () => {
       setLoading(true)
       setError('')

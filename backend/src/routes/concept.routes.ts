@@ -1,49 +1,14 @@
-import { getUserConceptMastery, getRecommendedProblems } from '@services/concept.service';
-import { authenticate } from '@middleware/auth';
+import { getMastery, getRecommendations } from '@controllers/conceptController';
+import { asyncHandler } from '@middleware/asyncHandler';
+import { authGuard } from '@middleware/auth';
 import { Router } from 'express';
 
-import type { Request, Response, NextFunction } from 'express';
-
+// Concept routes: mastery scores and recommendation feed.
 const router = Router();
 
-const getMastery = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-        if (!req.user) {
-            res.status(401).json({ message: 'Unauthorized' });
-            return;
-        }
+router.use(authGuard);
 
-        const mastery = await getUserConceptMastery(req.user.id);
-        res.status(200).json({ mastery });
-    } catch (error) {
-        next(error);
-    }
-};
-
-const getRecommendations = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-        if (!req.user) {
-            res.status(401).json({ message: 'Unauthorized' });
-            return;
-        }
-
-        const recommendations = await getRecommendedProblems(req.user.id);
-        res.status(200).json({ recommendations });
-    } catch (error) {
-        next(error);
-    }
-};
-
-router.get('/mastery', (req, res, next) => {
-    void authenticate(req, res, () => {
-        void getMastery(req, res, next);
-    });
-});
-
-router.get('/recommendations', (req, res, next) => {
-    void authenticate(req, res, () => {
-        void getRecommendations(req, res, next);
-    });
-});
+router.get('/mastery', asyncHandler(getMastery));
+router.get('/recommendations', asyncHandler(getRecommendations));
 
 export default router;

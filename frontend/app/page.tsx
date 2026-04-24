@@ -5,6 +5,7 @@ import { Hero } from '@/components/landing/Hero'
 import { Navbar } from '@/components/landing/Navbar'
 import { Tracks } from '@/components/landing/Tracks'
 
+// Landing page: marketing sections that guide users to sign up/login.
 export default function HomePage() {
   return (
     <>

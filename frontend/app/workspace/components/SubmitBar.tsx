@@ -1,5 +1,7 @@
 'use client'
 
+import { memo } from 'react'
+
 type SubmissionStatus = 'idle' | 'loading' | 'done' | 'error'
 
 interface SubmitBarProps {
@@ -10,7 +12,8 @@ interface SubmitBarProps {
   canExplain: boolean
 }
 
-export default function SubmitBar({ status, onSubmit, onExplain, explainLoading, canExplain }: SubmitBarProps) {
+// Bottom action bar: submit/explain controls with busy-state handling.
+function SubmitBarComponent({ status, onSubmit, onExplain, explainLoading, canExplain }: SubmitBarProps) {
   const isLoading = status === 'loading'
   const isBusy = isLoading || explainLoading
   const isExplainDisabled = isBusy || !canExplain
@@ -27,10 +30,10 @@ export default function SubmitBar({ status, onSubmit, onExplain, explainLoading,
         <button
           onClick={onExplain}
           disabled={isExplainDisabled}
-          className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+          className={`workspace-button-secondary flex items-center gap-2 ${
             isExplainDisabled
-              ? 'cursor-not-allowed border border-slate-700 bg-transparent text-slate-500'
-              : 'border border-slate-600 bg-transparent text-slate-300 hover:border-sky-500/50 hover:text-sky-300'
+              ? 'cursor-not-allowed border-slate-700 text-slate-500 hover:border-slate-700 hover:text-slate-500'
+              : ''
           }`}
         >
           {explainLoading ? (
@@ -54,10 +57,10 @@ export default function SubmitBar({ status, onSubmit, onExplain, explainLoading,
         <button
           onClick={onSubmit}
           disabled={isBusy}
-          className={`flex items-center gap-2 rounded-md px-5 py-2 text-sm font-semibold transition-colors ${
+          className={`workspace-button-primary flex items-center gap-2 ${
             isBusy
-              ? 'cursor-not-allowed bg-slate-800 text-slate-500'
-              : 'bg-sky-600 text-white hover:bg-sky-500'
+              ? 'cursor-not-allowed bg-slate-800 text-slate-500 hover:bg-slate-800'
+              : ''
           }`}
         >
           {isLoading ? (
@@ -84,4 +87,7 @@ export default function SubmitBar({ status, onSubmit, onExplain, explainLoading,
   )
 }
 
+const SubmitBar = memo(SubmitBarComponent)
+
+export default SubmitBar
 export type { SubmissionStatus }

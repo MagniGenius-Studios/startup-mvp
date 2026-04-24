@@ -1,5 +1,6 @@
 import Link from 'next/link'
 
+// Landing footer: brand, utility links, and copyright.
 export const Footer = () => {
     return (
         <footer className="border-t border-slate-800 bg-[#0a0f1a]">

@@ -1,21 +1,8 @@
-import { SUPPORTED_LANGUAGES, normalizeLanguage } from '@constants/languages';
 import { z } from 'zod';
 
-const languageSchema = z.preprocess(
-    (value) => {
-        if (typeof value !== 'string') {
-            return value;
-        }
+import { supportedLanguageSchema } from './language.validators';
 
-        return normalizeLanguage(value) ?? value;
-    },
-    z.enum(SUPPORTED_LANGUAGES, {
-        errorMap: () => ({
-            message: `Language must be one of: ${SUPPORTED_LANGUAGES.join(', ')}`,
-        }),
-    }),
-);
-
+// Explain request schema: allows empty code but still enforces size and language.
 export const explainCodeSchema = z.object({
     problemId: z
         .string({ required_error: 'Problem ID is required' })
@@ -23,7 +10,7 @@ export const explainCodeSchema = z.object({
     code: z
         .string({ required_error: 'Code is required' })
         .max(50000, 'Code must be at most 50,000 characters'),
-    language: languageSchema,
+    language: supportedLanguageSchema,
 });
 
 export type ExplainCodeInput = z.infer<typeof explainCodeSchema>;

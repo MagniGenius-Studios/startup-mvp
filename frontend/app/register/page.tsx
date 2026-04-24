@@ -6,8 +6,10 @@ import { useEffect, useState } from 'react'
 import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/lib/auth'
 
+// Register page: creates a new user account and bootstraps session.
 export default function RegisterPage() {
     const { register, user, loading: authLoading } = useAuth()
+    // Controlled form state for validation + error messages.
     const [name, setName] = useState('')
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
@@ -15,7 +17,7 @@ export default function RegisterPage() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
 
-    // Redirect if already logged in
+    // Keep logged-in users out of auth pages.
     useEffect(() => {
         if (!authLoading && user) {
             window.location.href = '/dashboard'
@@ -33,6 +35,7 @@ export default function RegisterPage() {
 
         setLoading(true)
         try {
+            // Register API is wrapped by auth context for consistent user state.
             await register(name, email, password)
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Registration failed. Please try again.')

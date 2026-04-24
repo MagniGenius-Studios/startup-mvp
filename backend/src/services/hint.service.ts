@@ -5,6 +5,7 @@ import type { HintInput } from '../validators/hint.validators';
 import { generateExplainableFeedback } from './ai.service';
 import { evaluateSubmission } from './evaluation.service';
 
+// Hint service: evaluates submission and returns AI-readable coaching fields.
 export interface HintResult {
   isCorrect: boolean;
   mistake: string;
@@ -15,6 +16,7 @@ export interface HintResult {
 export const generateHintForSubmission = async (input: HintInput): Promise<HintResult> => {
   const prisma = getPrismaClient();
 
+  // Fetch problem statement + canonical solution used for comparison.
   const problem = await prisma.problem.findUnique({
     where: { id: input.problemId },
     select: {
@@ -39,6 +41,7 @@ export const generateHintForSubmission = async (input: HintInput): Promise<HintR
 
   let evaluation;
   try {
+    // Deterministic correctness check before we ask AI for wording.
     evaluation = evaluateSubmission({
       code: input.code,
       language: input.language,
@@ -56,6 +59,7 @@ export const generateHintForSubmission = async (input: HintInput): Promise<HintR
   const problemDescription = [problem.title, problem.description ?? ''].filter(Boolean).join('\n\n');
   const conceptNames = problem.concepts.map((c) => c.concept.name);
 
+  // Ask AI to explain the mistake in structured, UI-ready fields.
   const feedback = await generateExplainableFeedback(
     problemDescription,
     evaluation.referenceSolution,

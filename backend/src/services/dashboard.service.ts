@@ -1,12 +1,12 @@
 import { getPrismaClient } from '@config/db';
+import { Prisma } from '@prisma/client';
 import { isMissingProblemProgressStorageError } from '@utils/dbError';
 
-import { getWeakConcepts, getRecommendedProblems, type ConceptMasteryDto, type RecommendedProblemDto } from './concept.service';
+import { type ConceptMasteryDto, getRecommendedProblems, getWeakConcepts, type RecommendedProblemDto } from './concept.service';
 import { PROBLEM_PROGRESS_STATUS, type ProblemProgressStatus } from './progress.service';
 import { getStreak } from './streak.service';
 
-// ─── Types ──────────────────────────────────────────────────────
-
+// Dashboard service: aggregates metrics used by the learner home page.
 export interface DashboardRecentSubmissionDto {
   problemId: string;
   title: string;
@@ -35,14 +35,13 @@ export interface DashboardLanguageProgressDto {
   statusLabel: ProblemProgressStatus;
 }
 
-// ─── Helpers ────────────────────────────────────────────────────
-
 const getGlobalProgressCounts = async (
   userId: string,
 ): Promise<{ completedProblems: number; inProgressProblems: number }> => {
   const prisma = getPrismaClient();
 
   try {
+    // Count mastered vs currently learning problems for top-level stat cards.
     const [completedProblems, inProgressProblems] = await Promise.all([
       prisma.problemProgress.count({
         where: { userId, status: PROBLEM_PROGRESS_STATUS.COMPLETED },
@@ -65,6 +64,7 @@ const listRecentSubmissions = async (userId: string): Promise<DashboardRecentSub
   const prisma = getPrismaClient();
 
   try {
+    // Pull recent completed attempts for "Continue Learning" and activity feed.
     const rows = await prisma.submission.findMany({
       where: {
         userId,
@@ -105,73 +105,67 @@ const listRecentSubmissions = async (userId: string): Promise<DashboardRecentSub
 const buildLanguageProgress = async (
   userId: string,
 ): Promise<DashboardLanguageProgressDto[]> => {
-  const prisma = getPrismaClient() as any;
+  const prisma = getPrismaClient();
 
   try {
-    const languages = await prisma.language.findMany({
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-      },
-      orderBy: [{ createdAt: 'asc' }, { name: 'asc' }],
-    }) as Array<{ id: string; slug: string; name: string }>;
+    // Aggregate per-language totals and user status in one SQL query.
+    const rows = await prisma.$queryRaw<
+      Array<{
+        languageSlug: string;
+        languageName: string;
+        totalProblems: number;
+        completedProblems: number;
+        inProgressProblems: number;
+      }>
+    >(Prisma.sql`
+      SELECT
+        l."slug" AS "languageSlug",
+        l."name" AS "languageName",
+        COALESCE(COUNT(DISTINCT p."id"), 0)::int AS "totalProblems",
+        COALESCE(COUNT(DISTINCT CASE
+          WHEN pp."status" = ${PROBLEM_PROGRESS_STATUS.COMPLETED} THEN pp."problemId"
+          ELSE NULL
+        END), 0)::int AS "completedProblems",
+        COALESCE(COUNT(DISTINCT CASE
+          WHEN pp."status" = ${PROBLEM_PROGRESS_STATUS.IN_PROGRESS} THEN pp."problemId"
+          ELSE NULL
+        END), 0)::int AS "inProgressProblems"
+      FROM "Language" l
+      LEFT JOIN "Track" t ON t."languageId" = l."id"
+      LEFT JOIN "Problem" p ON p."trackId" = t."id"
+      LEFT JOIN "ProblemProgress" pp
+        ON pp."problemId" = p."id"
+       AND pp."userId" = ${userId}
+      GROUP BY l."id", l."slug", l."name", l."createdAt"
+      ORDER BY l."createdAt" ASC, l."name" ASC
+    `);
 
-    return Promise.all(
-      languages.map(async (language) => {
-        const [totalProblems, completedProblems, inProgressProblems] = await Promise.all([
-          prisma.problem.count({
-            where: {
-              track: {
-                languageId: language.id,
-              },
-            },
-          }),
-          prisma.problemProgress.count({
-            where: {
-              userId,
-              status: PROBLEM_PROGRESS_STATUS.COMPLETED,
-              problem: {
-                track: {
-                  languageId: language.id,
-                },
-              },
-            },
-          }),
-          prisma.problemProgress.count({
-            where: {
-              userId,
-              status: PROBLEM_PROGRESS_STATUS.IN_PROGRESS,
-              problem: {
-                track: {
-                  languageId: language.id,
-                },
-              },
-            },
-          }),
-        ]);
+    return rows.map((row) => {
+      const totalProblems = row.totalProblems;
+      const completedProblems = Math.min(row.completedProblems, totalProblems);
+      const inProgressProblems = row.inProgressProblems;
 
-        const completionPercent =
-          totalProblems > 0 ? Math.round((Math.min(completedProblems, totalProblems) / totalProblems) * 100) : 0;
+      const completionPercent =
+        totalProblems > 0 ? Math.round((completedProblems / totalProblems) * 100) : 0;
 
-        let statusLabel: ProblemProgressStatus = PROBLEM_PROGRESS_STATUS.NOT_STARTED;
-        if (totalProblems > 0 && completedProblems >= totalProblems) {
-          statusLabel = PROBLEM_PROGRESS_STATUS.COMPLETED;
-        } else if (completedProblems > 0 || inProgressProblems > 0) {
-          statusLabel = PROBLEM_PROGRESS_STATUS.IN_PROGRESS;
-        }
+      // Derive UI badge from aggregate counts.
+      let statusLabel: ProblemProgressStatus = PROBLEM_PROGRESS_STATUS.NOT_STARTED;
+      if (totalProblems > 0 && completedProblems >= totalProblems) {
+        statusLabel = PROBLEM_PROGRESS_STATUS.COMPLETED;
+      } else if (completedProblems > 0 || inProgressProblems > 0) {
+        statusLabel = PROBLEM_PROGRESS_STATUS.IN_PROGRESS;
+      }
 
-        return {
-          languageId: language.slug,
-          languageName: language.name,
-          totalProblems,
-          completedProblems: Math.min(completedProblems, totalProblems),
-          inProgressProblems,
-          completionPercent,
-          statusLabel,
-        };
-      }),
-    );
+      return {
+        languageId: row.languageSlug,
+        languageName: row.languageName,
+        totalProblems,
+        completedProblems,
+        inProgressProblems,
+        completionPercent,
+        statusLabel,
+      };
+    });
   } catch (error) {
     if (isMissingProblemProgressStorageError(error)) {
       return [];
@@ -180,9 +174,8 @@ const buildLanguageProgress = async (
   }
 };
 
-// ─── Main Export ─────────────────────────────────────────────────
-
 export const getDashboard = async (userId: string): Promise<DashboardDto> => {
+  // Use allSettled so one failing widget does not break the full dashboard.
   const [globalProgressResult, recentSubmissionsResult, languageProgressResult, streakResult, weakConceptsResult, recommendedResult] =
     await Promise.allSettled([
       getGlobalProgressCounts(userId),
@@ -193,6 +186,7 @@ export const getDashboard = async (userId: string): Promise<DashboardDto> => {
       getRecommendedProblems(userId),
     ]);
 
+  // Log failed widgets for debugging while still returning partial data.
   if (globalProgressResult.status === 'rejected') {
     console.error('[Dashboard] Global progress query failed:', globalProgressResult.reason);
   }
@@ -232,6 +226,7 @@ export const getDashboard = async (userId: string): Promise<DashboardDto> => {
   const recommendedProblems =
     recommendedResult.status === 'fulfilled' ? recommendedResult.value : [];
 
+  // Final payload matches frontend DashboardData contract.
   return {
     completedProblems: globalProgress.completedProblems,
     inProgressProblems: globalProgress.inProgressProblems,

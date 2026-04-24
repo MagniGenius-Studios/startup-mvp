@@ -8,22 +8,27 @@ import express, { json } from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
 
+// Express app factory: wires security, parsing, API routes, and global handlers.
 export const createApp = () => {
   const app = express();
+  const corsOrigin = env.frontendUrl ?? /^http:\/\/localhost:\d+$/;
 
+  // Core middleware stack for headers, CORS, body parsing, cookies, and logs.
   app.use(helmet());
   app.use(
     cors({
-      origin: process.env.FRONTEND_URL || /^http:\/\/localhost:\d+$/,
+      origin: corsOrigin,
       credentials: true,
     }),
   );
-  app.use(json({ limit: '1mb' }));
+  app.use(json({ limit: env.jsonBodyLimit }));
   app.use(cookieParser());
-  app.use(morgan('combined'));
+  app.use(morgan(env.httpLogFormat));
 
+  // Mount all API endpoints under /api.
   app.use('/api', routes);
 
+  // Catch unknown routes/errors after all route handlers.
   app.use(notFoundHandler);
   app.use(errorHandler);
 

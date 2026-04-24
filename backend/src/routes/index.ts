@@ -12,6 +12,7 @@ import progressRoutes from './progress.routes';
 import submissionRoutes from './submission.routes';
 import trackRoutes from './track.routes';
 
+// Main API router: mounts feature-specific route modules under /api.
 const router = Router();
 
 router.use('/health', healthRoutes);

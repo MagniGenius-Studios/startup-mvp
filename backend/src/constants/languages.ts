@@ -1,3 +1,4 @@
+// Shared language metadata used by backend validation and frontend payloads.
 export const SUPPORTED_LANGUAGES = ['python', 'cpp', 'java', 'javascript', 'go'] as const;
 
 export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
@@ -23,6 +24,7 @@ export const LANGUAGE_LABELS: Record<SupportedLanguage, string> = {
 };
 
 export const normalizeLanguage = (value: string): SupportedLanguage | null => {
+  // Collapses aliases like `py`, `js`, and `c++` into canonical slugs.
   const normalized = value.trim().toLowerCase();
   return LANGUAGE_ALIAS_MAP[normalized] ?? null;
 };
