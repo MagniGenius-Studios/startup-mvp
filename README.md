@@ -236,40 +236,7 @@ npm run build
 npm start
 ```
 
-## 10. Environment Variables
-
-### Backend (`backend/.env`)
-
-| Variable | Required | Default | Description |
-| --- | --- | --- | --- |
-| `NODE_ENV` | No | `development` | Runtime mode (`development`, `test`, `production`) |
-| `PORT` | No | `4000` | API server port |
-| `DATABASE_URL` | Yes | - | PostgreSQL connection string |
-| `JWT_SECRET` | Yes | - | JWT signing secret (min 16 chars) |
-| `GROQ_API_KEY` | No | - | API key for LLM provider integration |
-| `FRONTEND_URL` | No | `http://localhost:3000` (recommended) | Allowed frontend origin for CORS |
-| `JSON_BODY_LIMIT` | No | `1mb` | Max JSON request body size |
-| `HTTP_LOG_FORMAT` | No | `combined` | Morgan log format |
-| `AUTH_COOKIE_MAX_AGE_MS` | No | `86400000` | Auth cookie max age in ms |
-| `OAUTH_GOOGLE_CLIENT_ID` | No | - | Reserved for Google OAuth integration |
-| `OAUTH_GOOGLE_CLIENT_SECRET` | No | - | Reserved for Google OAuth integration |
-| `EMAIL_PROVIDER_API_KEY` | No | - | Reserved for transactional email integration |
-
-### Frontend (`frontend/.env.local`)
-
-| Variable | Required | Default | Description |
-| --- | --- | --- | --- |
-| `NEXT_PUBLIC_API_URL` | Recommended | `http://localhost:4000/api` | Base URL used by frontend API client |
-
-## 11. Screenshots
-
-![Landing Page](./screenshots/landing.png)
-![Dashboard](./screenshots/dashboard.png)
-![Learning Paths](./screenshots/learn-paths.png)
-![Workspace](./screenshots/workspace.png)
-![AI Mentor Feedback](./screenshots/mentor-feedback.png)
-
-## 12. Future Improvements / Roadmap
+## 10. Future Improvements / Roadmap
 
 - Add robust sandboxed code execution per language
 - Expand test coverage (unit + integration + e2e)
@@ -277,15 +244,3 @@ npm start
 - Introduce real-time collaboration in workspace
 - Add richer analytics for learner performance trends
 - Add OAuth/social sign-in flows and email verification
-
-## 13. Contribution Guidelines
-
-1. Fork the repository and create a feature branch.
-2. Keep changes scoped and aligned with existing architecture patterns.
-3. Run lint/build checks before opening a PR.
-4. Include clear PR descriptions, test notes, and screenshots for UI changes.
-5. Use conventional, descriptive commit messages.
-
-## 14. License
-
-This project is licensed under the **MIT License**.
