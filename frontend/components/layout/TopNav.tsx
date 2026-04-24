@@ -7,7 +7,7 @@ import { useAuth } from '@/lib/auth'
 
 const navLinks = [
   { href: '/dashboard', label: 'Dashboard', icon: '◉' },
-  { href: '/languages', label: 'Learn', icon: '📚' },
+  { href: '/learn', label: 'Learn', icon: '📚' },
   { href: '/workspace', label: 'Practice', icon: '⌨' },
 ] as const
 

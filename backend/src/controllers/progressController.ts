@@ -23,9 +23,8 @@ export const listProblemProgress = async (
       return;
     }
 
-    const progress = await progressService.listProblemProgressByCategory(
+    const progress = await progressService.listProblemProgress(
       req.user.id,
-      parsed.data.categoryId,
     );
 
     res.status(200).json({ progress });

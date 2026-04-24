@@ -1,10 +1,12 @@
 import { getPrismaClient } from '@config/db';
+import { normalizeLanguage } from '@constants/languages';
 import { AppError } from '@utils/AppError';
 import { isMissingProblemProgressStorageError } from '@utils/dbError';
 
 import type { SubmitCodeInput } from '../validators/submission.validators';
-import { evaluateCorrectness, generateExplainableFeedback } from './ai.service';
+import { generateExplainableFeedback } from './ai.service';
 import { updateConceptMastery } from './concept.service';
+import { evaluateSubmission } from './evaluation.service';
 import { upsertProblemProgress } from './progress.service';
 import { updateStreak } from './streak.service';
 
@@ -36,74 +38,6 @@ export interface SubmissionHistoryDto {
     createdAt: Date;
 }
 
-// ─── Helpers ────────────────────────────────────────────────────
-
-/**
- * Normalize text for output comparison:
- * trim, collapse whitespace, normalize line breaks.
- */
-const normalizeOutput = (text: string): string =>
-    text.trim().replace(/\r\n/g, '\n').replace(/[ \t]+/g, ' ').replace(/\n+/g, '\n');
-
-/**
- * Naive print-statement extractor for MVP.
- * Extracts string literals from print()/console.log() calls.
- * NOT a real runtime — only handles simple cases with string literals.
- */
-const naiveExtractPrints = (code: string, language: string): string | null => {
-    const lines = code.split('\n');
-    const outputs: string[] = [];
-
-    for (const line of lines) {
-        const trimmed = line.trim();
-
-        if (language === 'python') {
-            // Match: print("...") or print('...')
-            const match = trimmed.match(/^print\s*\(\s*(?:f?)(["'])(.*?)\1\s*\)$/);
-            if (match) {
-                outputs.push(match[2]);
-                continue;
-            }
-            // Match: print(variable) or print(expression) — skip, can't evaluate
-            const simpleMatch = trimmed.match(/^print\s*\(\s*(.+?)\s*\)$/);
-            if (simpleMatch) {
-                // If it's a simple number or expression, include as-is
-                const inner = simpleMatch[1];
-                if (/^[\d+\-*/%\s().]+$/.test(inner)) {
-                    try {
-                        // Safe arithmetic-only eval
-                        const result = Function(`"use strict"; return (${inner})`)();
-                        outputs.push(String(result));
-                    } catch {
-                        // Can't evaluate — skip
-                    }
-                }
-            }
-        } else if (language === 'javascript' || language === 'typescript') {
-            // Match: console.log("...") or console.log('...')
-            const match = trimmed.match(/^console\.log\s*\(\s*(["'`])(.*?)\1\s*\)$/);
-            if (match) {
-                outputs.push(match[2]);
-                continue;
-            }
-            const simpleMatch = trimmed.match(/^console\.log\s*\(\s*(.+?)\s*\)$/);
-            if (simpleMatch) {
-                const inner = simpleMatch[1];
-                if (/^[\d+\-*/%\s().]+$/.test(inner)) {
-                    try {
-                        const result = Function(`"use strict"; return (${inner})`)();
-                        outputs.push(String(result));
-                    } catch {
-                        // Can't evaluate
-                    }
-                }
-            }
-        }
-    }
-
-    return outputs.length > 0 ? outputs.join('\n') : null;
-};
-
 // ─── Main Service ───────────────────────────────────────────────
 
 export const createAndAnalyzeSubmission = async (
@@ -111,6 +45,11 @@ export const createAndAnalyzeSubmission = async (
     input: SubmitCodeInput,
 ): Promise<SubmissionCreateResult> => {
     const prisma = getPrismaClient();
+    const normalizedLanguage = normalizeLanguage(input.language);
+
+    if (!normalizedLanguage) {
+        throw new AppError('Language not supported', 400);
+    }
 
     // 1. Verify the problem exists and get its description + reference solution
     const problem = await prisma.problem.findUnique({
@@ -120,7 +59,6 @@ export const createAndAnalyzeSubmission = async (
             title: true,
             description: true,
             solutionCode: true,
-            solutionReference: true,
             expectedOutput: true,
             concepts: {
                 select: {
@@ -142,7 +80,7 @@ export const createAndAnalyzeSubmission = async (
             userId,
             problemId: input.problemId,
             code: input.code,
-            language: input.language,
+            language: normalizedLanguage,
             status: 'ANALYZING',
         },
         select: {
@@ -151,19 +89,24 @@ export const createAndAnalyzeSubmission = async (
     });
 
     try {
-        // 3. Evaluate correctness by comparing with the canonical solution
-        const referenceSolution = problem.solutionCode || problem.solutionReference || '';
-        const isCorrect = referenceSolution
-            ? evaluateCorrectness(input.code, referenceSolution)
-            : false;
+        // 3. Evaluate correctness using the selected language's canonical solution.
+        let evaluationResult;
+        try {
+            evaluationResult = evaluateSubmission({
+                code: input.code,
+                language: normalizedLanguage,
+                solutionCode: problem.solutionCode,
+                expectedOutput: problem.expectedOutput,
+            });
+        } catch (error) {
+            if (error instanceof Error && error.message === 'LANGUAGE_NOT_SUPPORTED') {
+                throw new AppError('Language not supported for this problem', 400);
+            }
 
-        // 3b. Compute output comparison if expectedOutput is available
-        let userOutput: string | null = null;
-        const expectedOutput = problem.expectedOutput ?? null;
-
-        if (expectedOutput) {
-            userOutput = naiveExtractPrints(input.code, input.language);
+            throw error;
         }
+
+        const { isCorrect, userOutput, expectedOutput, referenceSolution } = evaluationResult;
 
         console.info(`[Submission] Correctness: ${isCorrect ? '✅ CORRECT' : '❌ INCORRECT'}`);
 
@@ -176,6 +119,7 @@ export const createAndAnalyzeSubmission = async (
             input.code,
             isCorrect,
             conceptNames,
+            normalizedLanguage,
         );
 
         // 5. Store the structured feedback in the database.

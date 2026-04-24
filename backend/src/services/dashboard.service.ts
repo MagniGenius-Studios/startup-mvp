@@ -37,12 +37,6 @@ export interface DashboardLanguageProgressDto {
 
 // ─── Helpers ────────────────────────────────────────────────────
 
-/**
- * Count completed and in-progress problems for a user.
- *
- * Uses two simple COUNT queries on ProblemProgress with the
- * @@index([userId, status]) composite index — O(user_rows), not O(all_submissions).
- */
 const getGlobalProgressCounts = async (
   userId: string,
 ): Promise<{ completedProblems: number; inProgressProblems: number }> => {
@@ -67,12 +61,6 @@ const getGlobalProgressCounts = async (
   }
 };
 
-/**
- * Fetch the 10 most recent COMPLETED submissions for a user, joined with Problem title.
- *
- * Only completed submissions are included — DRAFT/ANALYZING/ERROR are excluded
- * so the dashboard shows only finalized results.
- */
 const listRecentSubmissions = async (userId: string): Promise<DashboardRecentSubmissionDto[]> => {
   const prisma = getPrismaClient();
 
@@ -85,11 +73,11 @@ const listRecentSubmissions = async (userId: string): Promise<DashboardRecentSub
       select: {
         problemId: true,
         isCorrect: true,
+        language: true,
         createdAt: true,
         problem: {
           select: {
             title: true,
-            languageId: true,
           },
         },
       },
@@ -102,7 +90,7 @@ const listRecentSubmissions = async (userId: string): Promise<DashboardRecentSub
     return rows.map((submission) => ({
       problemId: submission.problemId,
       title: submission.problem?.title ?? `Problem ${submission.problemId.slice(0, 8)}`,
-      languageId: submission.problem?.languageId ?? null,
+      languageId: submission.language ?? null,
       isCorrect: submission.isCorrect,
       createdAt: submission.createdAt,
     }));
@@ -114,84 +102,76 @@ const listRecentSubmissions = async (userId: string): Promise<DashboardRecentSub
   }
 };
 
-/**
- * Build per-language progress by combining:
- * 1. All languages + their total problem counts (Language → Problem count)
- * 2. Per-user progress from ProblemProgress (joined to Problem for languageId)
- *
- * The join from ProblemProgress → Problem → Language is done via Prisma's
- * relational findMany rather than raw SQL CTEs.
- */
 const buildLanguageProgress = async (
   userId: string,
 ): Promise<DashboardLanguageProgressDto[]> => {
-  const prisma = getPrismaClient();
+  const prisma = getPrismaClient() as any;
 
   try {
-    // 1. Get all languages with their total problem counts
     const languages = await prisma.language.findMany({
       select: {
         id: true,
+        slug: true,
         name: true,
-        _count: {
-          select: { problems: true },
-        },
       },
-      orderBy: { name: 'asc' },
-    });
+      orderBy: [{ createdAt: 'asc' }, { name: 'asc' }],
+    }) as Array<{ id: string; slug: string; name: string }>;
 
-    // 2. Get user's progress records grouped by language
-    const userProgress = await prisma.problemProgress.findMany({
-      where: { userId },
-      select: {
-        status: true,
-        problem: {
-          select: { languageId: true },
-        },
-      },
-    });
+    return Promise.all(
+      languages.map(async (language) => {
+        const [totalProblems, completedProblems, inProgressProblems] = await Promise.all([
+          prisma.problem.count({
+            where: {
+              track: {
+                languageId: language.id,
+              },
+            },
+          }),
+          prisma.problemProgress.count({
+            where: {
+              userId,
+              status: PROBLEM_PROGRESS_STATUS.COMPLETED,
+              problem: {
+                track: {
+                  languageId: language.id,
+                },
+              },
+            },
+          }),
+          prisma.problemProgress.count({
+            where: {
+              userId,
+              status: PROBLEM_PROGRESS_STATUS.IN_PROGRESS,
+              problem: {
+                track: {
+                  languageId: language.id,
+                },
+              },
+            },
+          }),
+        ]);
 
-    // 3. Aggregate counts per language
-    const countsByLanguage = new Map<string, { completed: number; inProgress: number }>();
-    for (const record of userProgress) {
-      const langId = record.problem.languageId;
-      const existing = countsByLanguage.get(langId) ?? { completed: 0, inProgress: 0 };
+        const completionPercent =
+          totalProblems > 0 ? Math.round((Math.min(completedProblems, totalProblems) / totalProblems) * 100) : 0;
 
-      if (record.status === PROBLEM_PROGRESS_STATUS.COMPLETED) {
-        existing.completed += 1;
-      } else if (record.status === PROBLEM_PROGRESS_STATUS.IN_PROGRESS) {
-        existing.inProgress += 1;
-      }
+        let statusLabel: ProblemProgressStatus = PROBLEM_PROGRESS_STATUS.NOT_STARTED;
+        if (totalProblems > 0 && completedProblems >= totalProblems) {
+          statusLabel = PROBLEM_PROGRESS_STATUS.COMPLETED;
+        } else if (completedProblems > 0 || inProgressProblems > 0) {
+          statusLabel = PROBLEM_PROGRESS_STATUS.IN_PROGRESS;
+        }
 
-      countsByLanguage.set(langId, existing);
-    }
-
-    // 4. Build the DTO array
-    return languages.map((language) => {
-      const counts = countsByLanguage.get(language.id);
-      const totalProblems = language._count.problems;
-      const completedProblems = counts?.completed ?? 0;
-      const inProgressProblems = counts?.inProgress ?? 0;
-      const completionPercent =
-        totalProblems > 0 ? Math.round((completedProblems / totalProblems) * 100) : 0;
-
-      let statusLabel: ProblemProgressStatus = PROBLEM_PROGRESS_STATUS.NOT_STARTED;
-      if (totalProblems > 0 && completedProblems === totalProblems) {
-        statusLabel = PROBLEM_PROGRESS_STATUS.COMPLETED;
-      } else if (completedProblems > 0 || inProgressProblems > 0) {
-        statusLabel = PROBLEM_PROGRESS_STATUS.IN_PROGRESS;
-      }
-
-      return {
-        languageId: language.id,
-        languageName: language.name,
-        totalProblems,
-        completedProblems,
-        inProgressProblems,
-        completionPercent,
-        statusLabel,
-      };
-    });
+        return {
+          languageId: language.slug,
+          languageName: language.name,
+          totalProblems,
+          completedProblems: Math.min(completedProblems, totalProblems),
+          inProgressProblems,
+          completionPercent,
+          statusLabel,
+        };
+      }),
+    );
   } catch (error) {
     if (isMissingProblemProgressStorageError(error)) {
       return [];

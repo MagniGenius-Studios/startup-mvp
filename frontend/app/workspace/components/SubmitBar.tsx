@@ -7,11 +7,13 @@ interface SubmitBarProps {
   onSubmit: () => void
   onExplain: () => void
   explainLoading: boolean
+  canExplain: boolean
 }
 
-export default function SubmitBar({ status, onSubmit, onExplain, explainLoading }: SubmitBarProps) {
+export default function SubmitBar({ status, onSubmit, onExplain, explainLoading, canExplain }: SubmitBarProps) {
   const isLoading = status === 'loading'
   const isBusy = isLoading || explainLoading
+  const isExplainDisabled = isBusy || !canExplain
 
   return (
     <div className="flex shrink-0 items-center justify-between border-t border-slate-800 bg-[#0a0e1a] px-4 py-2.5">
@@ -24,9 +26,9 @@ export default function SubmitBar({ status, onSubmit, onExplain, explainLoading 
         {/* Explain My Code button */}
         <button
           onClick={onExplain}
-          disabled={isBusy}
+          disabled={isExplainDisabled}
           className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-            isBusy
+            isExplainDisabled
               ? 'cursor-not-allowed border border-slate-700 bg-transparent text-slate-500'
               : 'border border-slate-600 bg-transparent text-slate-300 hover:border-sky-500/50 hover:text-sky-300'
           }`}

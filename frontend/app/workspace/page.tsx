@@ -11,7 +11,7 @@ export default function WorkspaceLegacyPage() {
 
   useEffect(() => {
     if (!loading && user) {
-      router.push('/languages')
+      router.push('/learn')
     }
   }, [loading, router, user])
 

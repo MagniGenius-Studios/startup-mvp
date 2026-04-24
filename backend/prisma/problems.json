@@ -5,11 +5,26 @@
     "difficulty": "easy",
     "type": "coding",
     "description": "Write a Python program that prints the text `Hello, World!` to the console.\n\n**Expected Output:**\n```\nHello, World!\n```\n\n**💡 Hint:** In Python, you can display text using `print()`. Put your text inside quotes within the parentheses.",
-    "starterCode": "# Use the print() function to display Hello, World!\n",
-    "correctSolution": "print(\"Hello, World!\")",
+    "starterCode": {
+      "python": "# Use the print() function to display Hello, World!\n",
+      "cpp": "#include <iostream>\n\nint main() {\n  // Write your code here\n  return 0;\n}\n",
+      "java": "class Main {\n  public static void main(String[] args) {\n    // Write your code here\n  }\n}\n",
+      "javascript": "// Write your code here\n",
+      "go": "package main\n\nimport \"fmt\"\n\nfunc main() {\n  // Write your code here\n}\n"
+    },
     "testCases": [
-      { "input": "", "expectedOutput": "Hello, World!" }
-    ]
+      {
+        "input": "",
+        "expectedOutput": "Hello, World!"
+      }
+    ],
+    "solutionCode": {
+      "python": "print(\"Hello, World!\")",
+      "cpp": "// TODO: add C++ solution\n",
+      "java": "// TODO: add Java solution\n",
+      "javascript": "// TODO: add JavaScript solution\n",
+      "go": "// TODO: add Go solution\n"
+    }
   },
   {
     "title": "Print Your Name",
@@ -17,11 +32,26 @@
     "difficulty": "easy",
     "type": "coding",
     "description": "Write a Python program that prints `My name is CodeByte` to the console.\n\n**Expected Output:**\n```\nMy name is CodeByte\n```\n\n**💡 Hint:** Use `print()` with a string inside double quotes `\"...\"` or single quotes `'...'`. The text inside the quotes is printed exactly as written.",
-    "starterCode": "# Print the sentence: My name is CodeByte\n",
-    "correctSolution": "print(\"My name is CodeByte\")",
+    "starterCode": {
+      "python": "# Print the sentence: My name is CodeByte\n",
+      "cpp": "#include <iostream>\n\nint main() {\n  // Write your code here\n  return 0;\n}\n",
+      "java": "class Main {\n  public static void main(String[] args) {\n    // Write your code here\n  }\n}\n",
+      "javascript": "// Write your code here\n",
+      "go": "package main\n\nimport \"fmt\"\n\nfunc main() {\n  // Write your code here\n}\n"
+    },
     "testCases": [
-      { "input": "", "expectedOutput": "My name is CodeByte" }
-    ]
+      {
+        "input": "",
+        "expectedOutput": "My name is CodeByte"
+      }
+    ],
+    "solutionCode": {
+      "python": "print(\"My name is CodeByte\")",
+      "cpp": "// TODO: add C++ solution\n",
+      "java": "// TODO: add Java solution\n",
+      "javascript": "// TODO: add JavaScript solution\n",
+      "go": "// TODO: add Go solution\n"
+    }
   },
   {
     "title": "Print Multiple Words",
@@ -29,11 +59,26 @@
     "difficulty": "easy",
     "type": "coding",
     "description": "Use a single `print()` statement with **multiple arguments** to print `I love Python` to the console.\n\n**Expected Output:**\n```\nI love Python\n```\n\n**💡 Hint:** You can pass multiple values to `print()` separated by commas. For example, `print(\"A\", \"B\")` prints `A B` — Python automatically adds a space between them.",
-    "starterCode": "# Use print() with multiple arguments separated by commas\n# Example: print(\"word1\", \"word2\", \"word3\")\n",
-    "correctSolution": "print(\"I\", \"love\", \"Python\")",
+    "starterCode": {
+      "python": "# Use print() with multiple arguments separated by commas\n# Example: print(\"word1\", \"word2\", \"word3\")\n",
+      "cpp": "#include <iostream>\n\nint main() {\n  // Write your code here\n  return 0;\n}\n",
+      "java": "class Main {\n  public static void main(String[] args) {\n    // Write your code here\n  }\n}\n",
+      "javascript": "// Write your code here\n",
+      "go": "package main\n\nimport \"fmt\"\n\nfunc main() {\n  // Write your code here\n}\n"
+    },
     "testCases": [
-      { "input": "", "expectedOutput": "I love Python" }
-    ]
+      {
+        "input": "",
+        "expectedOutput": "I love Python"
+      }
+    ],
+    "solutionCode": {
+      "python": "print(\"I\", \"love\", \"Python\")",
+      "cpp": "// TODO: add C++ solution\n",
+      "java": "// TODO: add Java solution\n",
+      "javascript": "// TODO: add JavaScript solution\n",
+      "go": "// TODO: add Go solution\n"
+    }
   },
   {
     "title": "Print Two Lines",
@@ -41,11 +86,26 @@
     "difficulty": "easy",
     "type": "coding",
     "description": "Write a program that prints two lines of output:\n- Line 1: `Hello`\n- Line 2: `World`\n\n**Expected Output:**\n```\nHello\nWorld\n```\n\n**💡 Hint:** Each `print()` statement automatically moves to a new line after printing. So calling `print()` twice will produce two separate lines.",
-    "starterCode": "# Use two print() statements — one for each line\n",
-    "correctSolution": "print(\"Hello\")\nprint(\"World\")",
+    "starterCode": {
+      "python": "# Use two print() statements — one for each line\n",
+      "cpp": "#include <iostream>\n\nint main() {\n  // Write your code here\n  return 0;\n}\n",
+      "java": "class Main {\n  public static void main(String[] args) {\n    // Write your code here\n  }\n}\n",
+      "javascript": "// Write your code here\n",
+      "go": "package main\n\nimport \"fmt\"\n\nfunc main() {\n  // Write your code here\n}\n"
+    },
     "testCases": [
-      { "input": "", "expectedOutput": "Hello\nWorld" }
-    ]
+      {
+        "input": "",
+        "expectedOutput": "Hello\nWorld"
+      }
+    ],
+    "solutionCode": {
+      "python": "print(\"Hello\")\nprint(\"World\")",
+      "cpp": "// TODO: add C++ solution\n",
+      "java": "// TODO: add Java solution\n",
+      "javascript": "// TODO: add JavaScript solution\n",
+      "go": "// TODO: add Go solution\n"
+    }
   },
   {
     "title": "Print with Custom Separator",
@@ -53,11 +113,26 @@
     "difficulty": "easy",
     "type": "coding",
     "description": "Use the `sep` parameter in `print()` to print `2025-04-12` by passing `2025`, `04`, and `12` as separate arguments.\n\n**Expected Output:**\n```\n2025-04-12\n```\n\n**💡 Hint:** By default, `print()` separates arguments with a space. You can change this using `sep=\"...\"`. For example, `print(\"A\", \"B\", sep=\"-\")` prints `A-B` instead of `A B`.",
-    "starterCode": "# Use print() with the sep parameter\n# Syntax: print(arg1, arg2, arg3, sep=\"your_separator\")\n",
-    "correctSolution": "print(\"2025\", \"04\", \"12\", sep=\"-\")",
+    "starterCode": {
+      "python": "# Use print() with the sep parameter\n# Syntax: print(arg1, arg2, arg3, sep=\"your_separator\")\n",
+      "cpp": "#include <iostream>\n\nint main() {\n  // Write your code here\n  return 0;\n}\n",
+      "java": "class Main {\n  public static void main(String[] args) {\n    // Write your code here\n  }\n}\n",
+      "javascript": "// Write your code here\n",
+      "go": "package main\n\nimport \"fmt\"\n\nfunc main() {\n  // Write your code here\n}\n"
+    },
     "testCases": [
-      { "input": "", "expectedOutput": "2025-04-12" }
-    ]
+      {
+        "input": "",
+        "expectedOutput": "2025-04-12"
+      }
+    ],
+    "solutionCode": {
+      "python": "print(\"2025\", \"04\", \"12\", sep=\"-\")",
+      "cpp": "// TODO: add C++ solution\n",
+      "java": "// TODO: add Java solution\n",
+      "javascript": "// TODO: add JavaScript solution\n",
+      "go": "// TODO: add Go solution\n"
+    }
   },
   {
     "title": "Print a Pattern",
@@ -65,11 +140,26 @@
     "difficulty": "easy",
     "type": "coding",
     "description": "Write a program that prints this star triangle pattern:\n\n```\n*\n**\n***\n```\n\n**💡 Hint:** Use three separate `print()` statements. You can repeat a character using string multiplication: `\"*\" * 3` gives you `***`. Or simply type the stars directly inside quotes.",
-    "starterCode": "# Print a star triangle — each line has one more star\n# You can use \"*\" * number to repeat stars\n",
-    "correctSolution": "print(\"*\")\nprint(\"**\")\nprint(\"***\")",
+    "starterCode": {
+      "python": "# Print a star triangle — each line has one more star\n# You can use \"*\" * number to repeat stars\n",
+      "cpp": "#include <iostream>\n\nint main() {\n  // Write your code here\n  return 0;\n}\n",
+      "java": "class Main {\n  public static void main(String[] args) {\n    // Write your code here\n  }\n}\n",
+      "javascript": "// Write your code here\n",
+      "go": "package main\n\nimport \"fmt\"\n\nfunc main() {\n  // Write your code here\n}\n"
+    },
     "testCases": [
-      { "input": "", "expectedOutput": "*\n**\n***" }
-    ]
+      {
+        "input": "",
+        "expectedOutput": "*\n**\n***"
+      }
+    ],
+    "solutionCode": {
+      "python": "print(\"*\")\nprint(\"**\")\nprint(\"***\")",
+      "cpp": "// TODO: add C++ solution\n",
+      "java": "// TODO: add Java solution\n",
+      "javascript": "// TODO: add JavaScript solution\n",
+      "go": "// TODO: add Go solution\n"
+    }
   },
   {
     "title": "What Does This Print? — Comma Arguments",

@@ -1,11 +1,12 @@
 import { api } from './api'
+import type { Language } from './languages'
 
 // ─── Types ──────────────────────────────────────────────────────
 
 interface SubmitCodeParams {
   problemId: string
   code: string
-  language: string
+  language: Language
 }
 
 export interface SubmitCodeResponse {
@@ -20,7 +21,7 @@ export interface SubmitCodeResponse {
 
 export interface LatestSubmission {
   code: string
-  language: string
+  language: Language
   isCorrect: boolean
   mistake: string | null
   concept: string | null

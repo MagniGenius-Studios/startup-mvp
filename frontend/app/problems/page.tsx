@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
 
-export default function LanguagesPageRedirect() {
+export default function ProblemsPageRedirect() {
   redirect('/learn')
 }

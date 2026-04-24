@@ -1,10 +1,10 @@
 'use client'
 
-import type { CategoryProblemSummary, ProblemDetail } from '@/lib/problems'
+import type { ProblemDetail, ProblemSummary } from '@/lib/problems'
 import type { ProblemProgressStatus } from '@/lib/progress'
 
 interface ProblemPanelProps {
-  problems: CategoryProblemSummary[]
+  problems: ProblemSummary[]
   problemProgressById: Record<string, ProblemProgressStatus>
   currentProblem: ProblemDetail | null
   onSelectProblem: (id: string) => void

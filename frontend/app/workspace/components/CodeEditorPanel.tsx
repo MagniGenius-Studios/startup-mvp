@@ -2,6 +2,8 @@
 
 import dynamic from 'next/dynamic'
 
+import { LANGUAGE_META, SUPPORTED_LANGUAGES, type Language } from '@/lib/languages'
+
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false,
   loading: () => (
@@ -10,26 +12,6 @@ const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
     </div>
   ),
 })
-
-// ── Types ──
-
-type Language = 'python' | 'javascript' | 'typescript' | 'java' | 'cpp'
-
-interface LanguageMeta {
-  label: string
-  monacoId: string
-  extension: string
-}
-
-const LANGUAGES: Language[] = ['python', 'javascript', 'typescript', 'java', 'cpp']
-
-const LANGUAGE_META: Record<Language, LanguageMeta> = {
-  python: { label: 'Python', monacoId: 'python', extension: 'solution.py' },
-  javascript: { label: 'JavaScript', monacoId: 'javascript', extension: 'solution.js' },
-  typescript: { label: 'TypeScript', monacoId: 'typescript', extension: 'solution.ts' },
-  java: { label: 'Java', monacoId: 'java', extension: 'Solution.java' },
-  cpp: { label: 'C++', monacoId: 'cpp', extension: 'solution.cpp' },
-}
 
 // ── Props ──
 
@@ -62,7 +44,7 @@ export default function CodeEditorPanel({
               onChange={(e) => onLanguageChange(e.target.value as Language)}
               className="appearance-none rounded border border-slate-700 bg-[#131822] px-2.5 py-1 pr-7 text-xs text-slate-300 outline-none focus:border-sky-500"
             >
-              {LANGUAGES.map((lang) => (
+              {SUPPORTED_LANGUAGES.map((lang) => (
                 <option key={lang} value={lang}>
                   {LANGUAGE_META[lang].label}
                 </option>
@@ -123,5 +105,5 @@ export default function CodeEditorPanel({
   )
 }
 
-export { LANGUAGE_META, LANGUAGES }
+export { LANGUAGE_META, SUPPORTED_LANGUAGES as LANGUAGES }
 export type { Language }

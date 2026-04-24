@@ -1,6 +1,5 @@
 import { getPrismaClient } from '@config/db';
 import { Prisma } from '@prisma/client';
-import { AppError } from '@utils/AppError';
 import { isMissingProblemProgressStorageError } from '@utils/dbError';
 
 export const PROBLEM_PROGRESS_STATUS = {
@@ -58,9 +57,8 @@ export const upsertProblemProgress = async (
   }
 };
 
-const listProblemProgressByCategoryFromSubmissions = async (
+const listProblemProgressFromSubmissions = async (
   userId: string,
-  categoryId: string,
 ): Promise<ProblemProgressDto[]> => {
   const prisma = getPrismaClient();
   const fallbackProgress = await prisma.$queryRaw<Array<{ problemId: string; status: string }>>(
@@ -72,8 +70,7 @@ const listProblemProgressByCategoryFromSubmissions = async (
           ELSE ${PROBLEM_PROGRESS_STATUS.IN_PROGRESS}
         END AS "status"
       FROM "Submission" s
-      INNER JOIN "Problem" p ON p."id" = s."problemId"
-      WHERE s."userId" = ${userId} AND p."categoryId" = ${categoryId}
+      WHERE s."userId" = ${userId}
       GROUP BY s."problemId"
     `,
   );
@@ -84,20 +81,10 @@ const listProblemProgressByCategoryFromSubmissions = async (
   }));
 };
 
-export const listProblemProgressByCategory = async (
+export const listProblemProgress = async (
   userId: string,
-  categoryId: string,
 ): Promise<ProblemProgressDto[]> => {
   const prisma = getPrismaClient();
-
-  const category = await prisma.category.findUnique({
-    where: { id: categoryId },
-    select: { id: true },
-  });
-
-  if (!category) {
-    throw new AppError('Category not found', 404);
-  }
 
   let progress: Array<{ problemId: string; status: string }> = [];
   try {
@@ -105,15 +92,14 @@ export const listProblemProgressByCategory = async (
       Prisma.sql`
         SELECT pp."problemId", pp."status"
         FROM "ProblemProgress" pp
-        INNER JOIN "Problem" p ON p."id" = pp."problemId"
-        WHERE pp."userId" = ${userId} AND p."categoryId" = ${categoryId}
+        WHERE pp."userId" = ${userId}
       `,
     );
   } catch (error) {
     if (!isMissingProblemProgressStorageError(error)) {
       throw error;
     }
-    return listProblemProgressByCategoryFromSubmissions(userId, categoryId);
+    return listProblemProgressFromSubmissions(userId);
   }
 
   return progress.map((item) => ({

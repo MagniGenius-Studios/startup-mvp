@@ -1,20 +1,27 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-import { useAuth } from '@/lib/auth'
-import { fetchProblem, fetchProblemsByCategory } from '@/lib/problems'
+import { explainCode, type CodeExplanationResponse } from '@/lib/explanations'
+import {
+  LANGUAGE_META,
+  type Language,
+  type LanguageCodeMap,
+  normalizeLanguage,
+  resolveLanguageCodeMap,
+} from '@/lib/languages'
+import { fetchProblem, fetchProblemsByTrack, type ProblemDetail, type ProblemSummary } from '@/lib/problems'
 import { dispatchProgressUpdated } from '@/lib/progressEvents'
 import { fetchProblemProgress, type ProblemProgressStatus } from '@/lib/progress'
 import { fetchLatestSubmission, fetchSubmissionHistory, submitCode } from '@/lib/submissions'
 
-import type { CategoryProblemSummary, ProblemDetail } from '@/lib/problems'
 import type { SubmissionHistoryItem } from '@/lib/submissions'
 
 import WorkspaceLayout from '../components/WorkspaceLayout'
 import ProblemPanel from '../components/ProblemPanel'
-import CodeEditorPanel, { LANGUAGES, type Language } from '../components/CodeEditorPanel'
+import CodeEditorPanel from '../components/CodeEditorPanel'
+import ExplanationPanel from '../components/ExplanationPanel'
 import SubmitBar, { type SubmissionStatus } from '../components/SubmitBar'
 import MentorPanel from '../components/MentorPanel'
 
@@ -29,23 +36,18 @@ const toProgressMap = (items: Array<{ problemId: string; status: ProblemProgress
   }, {})
 }
 
-
-const isLanguage = (value: string): value is Language => {
-  return LANGUAGES.includes(value as Language)
-}
-
-
 export default function WorkspacePageClient({ problemId }: WorkspacePageClientProps) {
   const router = useRouter()
-  const { user } = useAuth()
 
-  const [problems, setProblems] = useState<CategoryProblemSummary[]>([])
+  const [problems, setProblems] = useState<ProblemSummary[]>([])
   const [problemProgressById, setProblemProgressById] = useState<Record<string, ProblemProgressStatus>>({})
   const [currentProblem, setCurrentProblem] = useState<ProblemDetail | null>(null)
   const [problemLoading, setProblemLoading] = useState(true)
   const [problemError, setProblemError] = useState('')
 
-  const [code, setCode] = useState<string>('')
+  const [codeByLanguage, setCodeByLanguage] = useState<LanguageCodeMap>(() =>
+    resolveLanguageCodeMap(null),
+  )
   const [language, setLanguage] = useState<Language>('python')
 
   const [status, setStatus] = useState<SubmissionStatus>('idle')
@@ -58,25 +60,29 @@ export default function WorkspacePageClient({ problemId }: WorkspacePageClientPr
   const [expectedOutput, setExpectedOutput] = useState<string | null>(null)
   const [history, setHistory] = useState<SubmissionHistoryItem[]>([])
   const [explainLoading, setExplainLoading] = useState(false)
+  const [explanation, setExplanation] = useState<CodeExplanationResponse | null>(null)
+  const [explainError, setExplainError] = useState('')
+  const [hasRequestedExplanation, setHasRequestedExplanation] = useState(false)
 
   const submittingRef = useRef(false)
-  // Monotonically increasing counter: guards against stale navigations.
-  // When the user switches problems before the previous fetch completes,
-  // the earlier call detects its loadId is stale and discards its results.
   const loadIdRef = useRef(0)
 
-  const refreshProgressForCategory = useCallback(async (categoryId: string) => {
+  const refreshProgress = useCallback(async () => {
     try {
-      const progressItems = await fetchProblemProgress(categoryId)
+      const progressItems = await fetchProblemProgress()
       setProblemProgressById(toProgressMap(progressItems))
     } catch {
       // Keep the workspace usable if progress refresh fails.
     }
   }, [])
 
+  const clearExplanation = useCallback(() => {
+    setExplanation(null)
+    setExplainError('')
+    setHasRequestedExplanation(false)
+  }, [])
 
   const loadProblem = useCallback(async (id: string) => {
-    // Increment load counter — any in-flight fetch with an older id is stale.
     const thisLoadId = ++loadIdRef.current
 
     setProblemLoading(true)
@@ -89,48 +95,50 @@ export default function WorkspacePageClient({ problemId }: WorkspacePageClientPr
     setError('')
     setUserOutput(null)
     setExpectedOutput(null)
-    // NOTE: code and language are intentionally NOT reset here.
-    // Clearing them would flash an empty editor while the API responds.
-    // The previous code stays visible (read-only via problemLoading) until
-    // the new data arrives and replaces it below.
+    clearExplanation()
 
     try {
       const problem = await fetchProblem(id)
 
-      // Guard: if the user navigated away, discard this result.
       if (loadIdRef.current !== thisLoadId) return
 
       setCurrentProblem(problem)
 
-      const [categoryData, latestSubmission, progressItems, submissionHistory] = await Promise.all([
-        fetchProblemsByCategory(problem.categoryId),
+      const [problemList, latestSubmission, progressItems, submissionHistory] = await Promise.all([
+        fetchProblemsByTrack(problem.trackId),
         fetchLatestSubmission(problem.id).catch(() => null),
-        fetchProblemProgress(problem.categoryId).catch(() => []),
+        fetchProblemProgress().catch(() => []),
         fetchSubmissionHistory(problem.id).catch(() => []),
       ])
 
-      // Guard again after second async boundary.
       if (loadIdRef.current !== thisLoadId) return
 
-      setProblems(categoryData.problems)
+      setProblems(problemList)
       setProblemProgressById(toProgressMap(progressItems))
       setHistory(submissionHistory)
 
+      const starterMap = resolveLanguageCodeMap(problem.starterCode)
 
       if (latestSubmission) {
-        setCode(latestSubmission.code)
-        setLanguage(isLanguage(latestSubmission.language) ? latestSubmission.language : 'python')
+        const normalizedSubmissionLanguage = normalizeLanguage(latestSubmission.language)
+        const normalizedProblemLanguage = normalizeLanguage(problem.languageSlug)
+        const activeLanguage = normalizedSubmissionLanguage ?? normalizedProblemLanguage ?? 'python'
+
+        setCodeByLanguage({
+          ...starterMap,
+          [activeLanguage]: latestSubmission.code,
+        })
+        setLanguage(activeLanguage)
         setIsCorrect(latestSubmission.isCorrect)
         setStatus('done')
         setMistake(latestSubmission.mistake ?? '')
         setConcept(latestSubmission.concept ?? '')
         setImprovement(latestSubmission.improvement ?? '')
       } else {
-        setCode(problem.starterCode ?? '# Write your code here\n')
-        setLanguage('python')
+        setCodeByLanguage(starterMap)
+        setLanguage(normalizeLanguage(problem.languageSlug) ?? 'python')
       }
     } catch (err) {
-      // Only apply error state if this is still the current load.
       if (loadIdRef.current !== thisLoadId) return
 
       setCurrentProblem(null)
@@ -142,7 +150,7 @@ export default function WorkspacePageClient({ problemId }: WorkspacePageClientPr
         setProblemLoading(false)
       }
     }
-  }, [])
+  }, [clearExplanation])
 
   useEffect(() => {
     void loadProblem(problemId)
@@ -155,6 +163,8 @@ export default function WorkspacePageClient({ problemId }: WorkspacePageClientPr
     },
     [problemId, router],
   )
+
+  const activeCode = codeByLanguage[language] ?? ''
 
   const handleSubmit = useCallback(async () => {
     if (submittingRef.current || !currentProblem) return
@@ -172,7 +182,7 @@ export default function WorkspacePageClient({ problemId }: WorkspacePageClientPr
     try {
       const result = await submitCode({
         problemId: currentProblem.id,
-        code,
+        code: activeCode,
         language,
       })
 
@@ -198,17 +208,15 @@ export default function WorkspacePageClient({ problemId }: WorkspacePageClientPr
         }
       })
 
-      await refreshProgressForCategory(currentProblem.categoryId)
+      await refreshProgress()
 
-      // Refresh history after submission
       fetchSubmissionHistory(currentProblem.id)
         .then(setHistory)
         .catch(() => undefined)
 
       dispatchProgressUpdated({
         problemId: currentProblem.id,
-        languageId: currentProblem.languageId,
-        categoryId: currentProblem.categoryId,
+        language,
       })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Submission failed. Please try again.')
@@ -216,58 +224,69 @@ export default function WorkspacePageClient({ problemId }: WorkspacePageClientPr
     } finally {
       submittingRef.current = false
     }
-  }, [code, currentProblem, language, refreshProgressForCategory])
+  }, [activeCode, currentProblem, language, refreshProgress])
 
   const handleExplain = useCallback(async () => {
-    if (submittingRef.current || !currentProblem) return
+    if (submittingRef.current || !currentProblem || !activeCode.trim()) return
     submittingRef.current = true
     setExplainLoading(true)
-    setMistake('')
-    setConcept('')
-    setImprovement('')
-    setError('')
+    setExplainError('')
+    setHasRequestedExplanation(true)
 
     try {
-      const result = await submitCode({
+      const result = await explainCode({
         problemId: currentProblem.id,
-        code,
+        code: activeCode,
         language,
       })
 
-      setIsCorrect(result.isCorrect)
-      setMistake(result.mistake ?? '')
-      setConcept(result.concept ?? '')
-      setImprovement(result.improvement ?? '')
-      setUserOutput(result.userOutput ?? null)
-      setExpectedOutput(result.expectedOutput ?? null)
-      setStatus('done')
-
-      // Refresh history after explain
-      fetchSubmissionHistory(currentProblem.id)
-        .then(setHistory)
-        .catch(() => undefined)
+      setExplanation(result)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Analysis failed. Please try again.')
-      setStatus('error')
+      setExplanation(null)
+      setExplainError(err instanceof Error ? err.message : 'Code explanation unavailable')
     } finally {
       submittingRef.current = false
       setExplainLoading(false)
     }
-  }, [code, currentProblem, language])
+  }, [activeCode, currentProblem, language])
 
   const handleLoadHistoryCode = useCallback((historicalCode: string) => {
-    setCode(historicalCode)
-  }, [])
+    setCodeByLanguage((previous) => ({
+      ...previous,
+      [language]: historicalCode,
+    }))
+    clearExplanation()
+  }, [clearExplanation, language])
 
-  const handleLanguageChange = useCallback(
-    (newLang: Language) => {
-      setLanguage(newLang)
-      if (currentProblem?.starterCode) {
-        setCode(currentProblem.starterCode)
+  const handleLanguageChange = useCallback((newLang: Language) => {
+    setLanguage(newLang)
+    setCodeByLanguage((previous) => {
+      if (previous[newLang] && previous[newLang].length > 0) {
+        return previous
       }
-    },
-    [currentProblem],
-  )
+
+      const starterMap = resolveLanguageCodeMap(currentProblem?.starterCode)
+      return {
+        ...previous,
+        [newLang]: starterMap[newLang],
+      }
+    })
+    clearExplanation()
+  }, [clearExplanation, currentProblem])
+
+  const handleCodeChange = useCallback((nextCode: string) => {
+    setCodeByLanguage((previous) => {
+      const previousCode = previous[language] ?? ''
+      if (previousCode !== nextCode) {
+        clearExplanation()
+      }
+
+      return {
+        ...previous,
+        [language]: nextCode,
+      }
+    })
+  }, [clearExplanation, language])
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -282,12 +301,8 @@ export default function WorkspacePageClient({ problemId }: WorkspacePageClientPr
   }, [handleSubmit])
 
   useEffect(() => {
-    if (!currentProblem) {
-      return
-    }
-
     const handleFocusRefresh = () => {
-      void refreshProgressForCategory(currentProblem.categoryId)
+      void refreshProgress()
     }
 
     const handleVisibilityChange = () => {
@@ -305,17 +320,18 @@ export default function WorkspacePageClient({ problemId }: WorkspacePageClientPr
       window.removeEventListener('pageshow', handleFocusRefresh)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
-  }, [currentProblem, refreshProgressForCategory])
+  }, [refreshProgress])
 
   const [showMentor, setShowMentor] = useState(true)
 
   const isReadOnly = status === 'loading'
+  const canExplain = !!currentProblem && activeCode.trim().length > 0
 
   return (
     <WorkspaceLayout
       header={{
         currentTitle: currentProblem?.title,
-        languageName: currentProblem?.languageName,
+        selectedLanguageLabel: LANGUAGE_META[language].label,
       }}
       showMentor={showMentor}
       onToggleMentor={() => setShowMentor((prev) => !prev)}
@@ -337,13 +353,25 @@ export default function WorkspacePageClient({ problemId }: WorkspacePageClientPr
           ) : null}
 
           <CodeEditorPanel
-            code={code}
+            code={activeCode}
             language={language}
             readOnly={isReadOnly || !currentProblem}
-            onCodeChange={setCode}
+            onCodeChange={handleCodeChange}
             onLanguageChange={handleLanguageChange}
           />
-          <SubmitBar status={status} onSubmit={handleSubmit} onExplain={handleExplain} explainLoading={explainLoading} />
+          <ExplanationPanel
+            visible={hasRequestedExplanation}
+            loading={explainLoading}
+            error={explainError}
+            explanation={explanation}
+          />
+          <SubmitBar
+            status={status}
+            onSubmit={handleSubmit}
+            onExplain={handleExplain}
+            explainLoading={explainLoading}
+            canExplain={canExplain}
+          />
         </>
       }
       mentorPanel={

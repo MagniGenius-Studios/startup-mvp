@@ -7,10 +7,8 @@ export interface ProblemProgressItem {
   status: ProblemProgressStatus
 }
 
-export async function fetchProblemProgress(categoryId: string): Promise<ProblemProgressItem[]> {
-  const { data } = await api.get<{ progress: ProblemProgressItem[] }>('/progress/problems', {
-    params: { categoryId },
-  })
+export async function fetchProblemProgress(): Promise<ProblemProgressItem[]> {
+  const { data } = await api.get<{ progress: ProblemProgressItem[] }>('/progress/problems')
 
   return data.progress
 }

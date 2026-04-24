@@ -2,8 +2,7 @@ export const PROGRESS_UPDATED_EVENT = 'codebyte:progress-updated'
 
 export interface ProgressUpdatedDetail {
   problemId: string
-  languageId: string
-  categoryId: string
+  language?: string
 }
 
 export function dispatchProgressUpdated(detail: ProgressUpdatedDetail) {

@@ -45,7 +45,7 @@ function getMasteryBadgeClass(status: ProgressStatusLabel): string {
 }
 
 export default function DashboardPage() {
-  const { user, loading: authLoading, logout } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const router = useRouter()
 
   const [dashboard, setDashboard] = useState<DashboardData | null>(null)
@@ -60,7 +60,7 @@ export default function DashboardPage() {
 
   const continueHref = useMemo(() => {
     const recentProblemId = dashboard?.recentSubmissions[0]?.problemId
-    return recentProblemId ? `/workspace/${recentProblemId}` : '/languages'
+    return recentProblemId ? `/workspace/${recentProblemId}` : '/learn'
   }, [dashboard?.recentSubmissions])
 
   const loadDashboard = useCallback(async () => {
@@ -182,7 +182,7 @@ export default function DashboardPage() {
           <section>
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-text-primary">Learning Paths</h2>
-              <Link href="/languages" className="text-xs text-text-muted hover:text-accent-light">
+              <Link href="/learn" className="text-xs text-text-muted hover:text-accent-light">
                 View all →
               </Link>
             </div>
@@ -192,7 +192,7 @@ export default function DashboardPage() {
                 return (
                   <Link
                     key={lang.languageId}
-                    href={`/languages/${lang.languageId}`}
+                    href={`/learn/${lang.languageId}`}
                     className="card-interactive"
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -317,8 +317,8 @@ export default function DashboardPage() {
           <section className="card text-center">
             <p className="text-sm text-text-muted">
               No activity yet. Start a{' '}
-              <Link href="/languages" className="text-accent-light hover:underline">
-                learning path
+              <Link href="/learn" className="text-accent-light hover:underline">
+                practice path
               </Link>{' '}
               to begin your journey.
             </p>

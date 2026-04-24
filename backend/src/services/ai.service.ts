@@ -10,6 +10,20 @@ export interface ExplainableFeedback {
     improvement: string;
 }
 
+export interface CodeExplanation {
+    steps: string[];
+    summary: string;
+    timeComplexity: string;
+    spaceComplexity: string;
+}
+
+interface ExplainCodeWithAIInput {
+    problemTitle: string;
+    problemDescription: string;
+    userCode: string;
+    language: string;
+}
+
 interface CodeSignals {
     readsInput: boolean;
     readsMultipleInputs: boolean;
@@ -28,6 +42,20 @@ const feedbackSchema = z.object({
     improvement: z.string().min(1),
 });
 
+const codeExplanationSchema = z.object({
+    steps: z.array(z.string().min(1)).min(1).max(6),
+    summary: z.string().min(1),
+    timeComplexity: z.string().min(1),
+    spaceComplexity: z.string().min(1),
+});
+
+export const EXPLAIN_CODE_FALLBACK: CodeExplanation = {
+    steps: ['Unable to break down code clearly'],
+    summary: 'Code explanation unavailable',
+    timeComplexity: 'Unknown',
+    spaceComplexity: 'Unknown',
+};
+
 // ─── Prompt ─────────────────────────────────────────────────────
 
 function buildPrompt(
@@ -36,6 +64,7 @@ function buildPrompt(
     userCode: string,
     isCorrect: boolean,
     concepts: string[],
+    language: string,
 ): string {
     const conceptList = concepts.length > 0
         ? concepts.join(', ')
@@ -57,7 +86,10 @@ ${userCode}
 4. Whether the solution is correct:
 ${isCorrect ? 'Yes, the solution is correct.' : 'No, the solution is incorrect.'}
 
-5. Concepts involved in this problem:
+5. User is writing code in:
+${language}
+
+6. Concepts involved in this problem:
 ${conceptList}
 
 Analyze the user's mistake.
@@ -76,6 +108,38 @@ Rules:
 - Be specific to user's code
 - If code is correct, still return improvement suggestion
 - For "concept", prefer one of the provided concepts: ${conceptList}`;
+}
+
+function buildCodeExplanationPrompt(input: ExplainCodeWithAIInput): string {
+    return `You are a coding tutor.
+
+Given:
+- Problem title: ${input.problemTitle}
+- Problem description: ${input.problemDescription}
+- Explain this ${input.language} code.
+- User's code:
+${input.userCode}
+
+Explain the code step-by-step in simple terms.
+
+Return ONLY valid JSON:
+
+{
+  "steps": [
+    "Step 1: ...",
+    "Step 2: ..."
+  ],
+  "summary": "Short explanation of what the code does",
+  "timeComplexity": "O(...)",
+  "spaceComplexity": "O(...)"
+}
+
+Rules:
+- Keep steps concise (1 line each)
+- Maximum 6 steps
+- Use simple language
+- Do NOT rewrite full code
+- If code is incorrect, still explain what it is trying to do`;
 }
 
 // ─── Heuristics ─────────────────────────────────────────────────
@@ -463,12 +527,48 @@ export function evaluateCorrectness(
 
 // ─── Parse AI Response ──────────────────────────────────────────
 
-function parseResponse(raw: string): ExplainableFeedback | null {
+function cleanJsonResponse(raw: string): string {
     let cleaned = raw.trim();
     if (cleaned.startsWith('```json')) cleaned = cleaned.slice(7);
     else if (cleaned.startsWith('```')) cleaned = cleaned.slice(3);
     if (cleaned.endsWith('```')) cleaned = cleaned.slice(0, -3);
-    cleaned = cleaned.trim();
+    return cleaned.trim();
+}
+
+function normalizeCodeExplanation(value: CodeExplanation): CodeExplanation {
+    const cleanedSteps = value.steps
+        .map((step) => step.replace(/\s+/g, ' ').trim())
+        .filter((step) => step.length > 0)
+        .slice(0, 6);
+
+    return {
+        steps: cleanedSteps.length > 0 ? cleanedSteps : EXPLAIN_CODE_FALLBACK.steps,
+        summary: value.summary.replace(/\s+/g, ' ').trim() || EXPLAIN_CODE_FALLBACK.summary,
+        timeComplexity: value.timeComplexity.replace(/\s+/g, ' ').trim() || EXPLAIN_CODE_FALLBACK.timeComplexity,
+        spaceComplexity: value.spaceComplexity.replace(/\s+/g, ' ').trim() || EXPLAIN_CODE_FALLBACK.spaceComplexity,
+    };
+}
+
+function parseCodeExplanationResponse(raw: string): CodeExplanation | null {
+    const cleaned = cleanJsonResponse(raw);
+
+    try {
+        const parsed = JSON.parse(cleaned);
+        const validated = codeExplanationSchema.safeParse(parsed);
+        if (!validated.success) {
+            console.error('[AI] Code explanation validation failed:', validated.error.flatten());
+            return null;
+        }
+
+        return normalizeCodeExplanation(validated.data);
+    } catch {
+        console.error('[AI] Failed to parse code explanation JSON:', raw.slice(0, 200));
+        return null;
+    }
+}
+
+function parseResponse(raw: string): ExplainableFeedback | null {
+    const cleaned = cleanJsonResponse(raw);
 
     try {
         const parsed = JSON.parse(cleaned);
@@ -540,6 +640,45 @@ async function callGroq(prompt: string): Promise<ExplainableFeedback | null> {
     }
 }
 
+async function callGroqForCodeExplanation(prompt: string): Promise<CodeExplanation | null> {
+    if (!env.groqApiKey) {
+        console.warn('[Groq Explain] No API key configured');
+        return null;
+    }
+
+    const client = new OpenAI({
+        apiKey: env.groqApiKey,
+        baseURL: 'https://api.groq.com/openai/v1',
+    });
+
+    try {
+        const completion = await client.chat.completions.create({
+            model: 'llama-3.3-70b-versatile',
+            messages: [
+                {
+                    role: 'system',
+                    content: 'You are a coding tutor. Always respond with valid JSON only. No markdown fencing.',
+                },
+                { role: 'user', content: prompt },
+            ],
+            temperature: 0.2,
+            max_tokens: 500,
+            response_format: { type: 'json_object' },
+        });
+
+        const raw = completion.choices[0]?.message?.content;
+        if (!raw) {
+            console.error('[Groq Explain] Empty response');
+            return null;
+        }
+
+        return parseCodeExplanationResponse(raw);
+    } catch (error) {
+        console.error('[Groq Explain] API error:', error instanceof Error ? error.message : error);
+        return null;
+    }
+}
+
 // ─── Main Function ──────────────────────────────────────────────
 
 export const generateExplainableFeedback = async (
@@ -548,10 +687,11 @@ export const generateExplainableFeedback = async (
     userCode: string,
     isCorrect: boolean,
     concepts: string[] = [],
+    language = 'python',
 ): Promise<ExplainableFeedback> => {
-    console.info(`\n[generateExplainableFeedback] ── START ── isCorrect=${isCorrect}, codeLen=${userCode.length}, concepts=[${concepts.join(', ')}]`);
+    console.info(`\n[generateExplainableFeedback] ── START ── isCorrect=${isCorrect}, language=${language}, codeLen=${userCode.length}, concepts=[${concepts.join(', ')}]`);
 
-    const prompt = buildPrompt(problemDescription, correctSolution, userCode, isCorrect, concepts);
+    const prompt = buildPrompt(problemDescription, correctSolution, userCode, isCorrect, concepts, language);
     const result = await callGroq(prompt);
 
     if (result) {
@@ -562,4 +702,21 @@ export const generateExplainableFeedback = async (
     // Fallback: generate structured feedback without LLM
     console.warn('[generateExplainableFeedback] ── END ── provider=FALLBACK ⚠️');
     return buildFallbackFeedback(problemDescription, correctSolution, userCode, isCorrect, concepts);
+};
+
+export const explainCodeWithAI = async (
+    input: ExplainCodeWithAIInput,
+): Promise<CodeExplanation> => {
+    if (!input.userCode.trim()) {
+        return EXPLAIN_CODE_FALLBACK;
+    }
+
+    const prompt = buildCodeExplanationPrompt(input);
+    const aiResult = await callGroqForCodeExplanation(prompt);
+
+    if (aiResult) {
+        return aiResult;
+    }
+
+    return EXPLAIN_CODE_FALLBACK;
 };

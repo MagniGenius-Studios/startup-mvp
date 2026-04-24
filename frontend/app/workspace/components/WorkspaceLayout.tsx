@@ -6,7 +6,7 @@ import React from 'react'
 interface WorkspaceLayoutProps {
   header: {
     currentTitle?: string
-    languageName?: string
+    selectedLanguageLabel?: string
   }
   problemPanel: React.ReactNode
   editorPanel: React.ReactNode
@@ -41,9 +41,9 @@ export default function WorkspaceLayout({
           {header.currentTitle && (
             <div className="flex items-center gap-2">
               <span className="text-[13px] font-medium text-text-primary">{header.currentTitle}</span>
-              {header.languageName && (
+              {header.selectedLanguageLabel && (
                 <span className="rounded-md bg-surface-2 px-2 py-0.5 text-[10px] font-medium text-text-muted">
-                  {header.languageName}
+                  {header.selectedLanguageLabel}
                 </span>
               )}
             </div>

@@ -1,24 +1,33 @@
+import { LANGUAGE_LABELS, SUPPORTED_LANGUAGES } from '@constants/languages';
+import * as problemService from '@services/problem.service';
 import { NextFunction, Request, Response } from 'express';
 
-import * as problemService from '@services/problem.service';
-
-export const listProblems = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const listLanguages = async (_req: Request, res: Response): Promise<void> => {
   try {
-    const problems = await problemService.listProblems();
-    res.json({ problems });
+    const languages = await problemService.listLanguages();
+    res.json({ languages });
+  } catch {
+    const fallbackLanguages = SUPPORTED_LANGUAGES.map((slug) => ({
+      slug,
+      name: LANGUAGE_LABELS[slug],
+    }));
+    res.json({ languages: fallbackLanguages });
+  }
+};
+
+export const listTracksByLanguage = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const tracks = await problemService.listTracksByLanguage(req.params.languageSlug);
+    res.json({ tracks });
   } catch (error) {
     next(error);
   }
 };
 
-export const listCategoryProblems = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> => {
+export const listProblemsByTrack = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const result = await problemService.listProblemsByCategory(req.params.categoryId);
-    res.json(result);
+    const problems = await problemService.listProblemsByTrack(req.params.trackId);
+    res.json({ problems });
   } catch (error) {
     next(error);
   }

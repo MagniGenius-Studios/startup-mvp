@@ -51,41 +51,53 @@ model Organization {
 }
 
 model User {
-  id             String           @id @default(uuid())
-  email          String           @unique
-  name           String?
-  passwordHash   String?
-  role           UserRole         @default(LEARNER)
-  organizationId String?
-  organization   Organization?    @relation(fields: [organizationId], references: [id], onDelete: SetNull)
-  enrollments    Enrollment[]
-  submissions    Submission[]
+  id              String            @id @default(uuid())
+  email           String            @unique
+  name            String?
+  passwordHash    String?
+  role            UserRole          @default(LEARNER)
+  organizationId  String?
+  organization    Organization?     @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  enrollments     Enrollment[]
+  submissions     Submission[]
   problemProgress ProblemProgress[]
-  lessonProgress LessonProgress[]
-  conceptMastery ConceptMastery[]
-  reflections    Reflection[]
-  events         Event[]          @relation("UserEvents")
-  streak         UserStreak?
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
+  lessonProgress  LessonProgress[]
+  conceptMastery  ConceptMastery[]
+  reflections     Reflection[]
+  events          Event[]           @relation("UserEvents")
+  streak          UserStreak?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 
   @@index([organizationId])
+}
+
+model Language {
+  id        String   @id @default(uuid())
+  slug      String   @unique
+  name      String
+  createdAt DateTime @default(now())
+  tracks    Track[]
 }
 
 model Track {
   id              String           @id @default(uuid())
   organizationId  String
+  languageId      String
   title           String
   description     String?
   isPublished     Boolean          @default(false)
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  language        Language         @relation(fields: [languageId], references: [id], onDelete: Cascade)
   modules         Module[]
+  problems        Problem[]
   enrollments     Enrollment[]
   promptTemplates PromptTemplate[]
 
   @@index([organizationId])
+  @@index([languageId])
 }
 
 model Module {
@@ -113,7 +125,6 @@ model Lesson {
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   module      Module           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  problems    Problem[]
   progress    LessonProgress[]
   reflections Reflection[]
 
@@ -121,56 +132,26 @@ model Lesson {
   @@index([moduleId, position])
 }
 
-model Language {
-  id         String     @id @default(uuid())
-  name       String     @unique
-  categories Category[]
-  problems   Problem[]
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
-}
-
-model Category {
-  id         String    @id @default(uuid())
-  name       String
-  languageId String
-  language   Language  @relation(fields: [languageId], references: [id], onDelete: Cascade)
-  problems   Problem[]
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-
-  @@unique([languageId, name])
-  @@index([languageId])
-}
-
 model Problem {
-  id                String           @id @default(uuid())
-  lessonId          String
-  languageId        String
-  categoryId        String
-  title             String
-  description       String?
-  starterCode       String?
-  solutionCode      String
-  solutionReference String?
-  expectedOutput    String?
-  difficulty        String?
-  position          Int              @default(0)
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-  lesson            Lesson           @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  language          Language         @relation(fields: [languageId], references: [id])
-  category          Category         @relation(fields: [categoryId], references: [id])
-  submissions       Submission[]
-  progressRecords   ProblemProgress[]
-  concepts          ProblemConcept[]
-  reflections       Reflection[]
+  id              String            @id @default(uuid())
+  trackId         String
+  title           String
+  description     String
+  starterCode     Json
+  solutionCode    Json
+  expectedOutput  String?
+  difficulty      String
+  position        Int               @default(0)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  track           Track             @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  submissions     Submission[]
+  progressRecords ProblemProgress[]
+  concepts        ProblemConcept[]
+  reflections     Reflection[]
 
-  @@index([lessonId])
-  @@index([languageId])
-  @@index([categoryId])
-  @@index([lessonId, position])
-  @@index([categoryId, position])
+  @@index([trackId])
+  @@index([trackId, position])
 }
 
 model Concept {
