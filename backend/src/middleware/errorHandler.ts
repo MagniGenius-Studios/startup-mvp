@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { NextFunction, Request, Response } from 'express';
 import { ZodError } from 'zod';
 
@@ -28,6 +29,25 @@ export const errorHandler = (
       message: 'Validation failed',
       statusCode: 400,
       errors: err.flatten().fieldErrors,
+    });
+  }
+
+  // Handle common Prisma failures with an actionable message for deploys.
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    if (err.code === 'P2021' || err.code === 'P2022') {
+      console.error('Prisma schema mismatch:', err);
+      return res.status(503).json({
+        message: 'Database schema is out of date. Run prisma migrate deploy.',
+        statusCode: 503,
+      });
+    }
+  }
+
+  if (err instanceof Prisma.PrismaClientInitializationError) {
+    console.error('Prisma initialization error:', err);
+    return res.status(503).json({
+      message: 'Database is unavailable or misconfigured.',
+      statusCode: 503,
     });
   }
 
