@@ -1,6 +1,7 @@
-import { env } from '@config/env';
 import OpenAI from 'openai';
 import { z } from 'zod';
+
+import { env } from '../config/env';
 
 // AI service: prompt building, response parsing, and fallback grading heuristics.
 // ─── Types ──────────────────────────────────────────────────────

@@ -1,8 +1,8 @@
-import { env } from '@config/env';
-import { requireUser } from '@middleware/auth';
-import * as authService from '@services/auth.service';
 import { Request, Response } from 'express';
 
+import { env } from '../config/env';
+import { requireUser } from '../middleware/auth';
+import * as authService from '../services/auth.service';
 import type { LoginInput, RegisterInput } from '../validators/auth.validators';
 
 // Auth controller: registration, login, session lookup, and logout endpoints.

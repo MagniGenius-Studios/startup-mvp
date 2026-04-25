@@ -1,5 +1,5 @@
-import { getPrismaClient } from '@config/db';
-import { isMissingProblemProgressStorageError } from '@utils/dbError';
+import { getPrismaClient } from '../config/db';
+import { isMissingProblemProgressStorageError } from '../utils/dbError';
 
 // Streak service: tracks consecutive active days based on submissions.
 // Compare dates in UTC to keep behavior consistent across timezones.

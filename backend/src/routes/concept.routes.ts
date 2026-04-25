@@ -1,7 +1,8 @@
-import { getMastery, getRecommendations } from '@controllers/conceptController';
-import { asyncHandler } from '@middleware/asyncHandler';
-import { authGuard } from '@middleware/auth';
 import { Router } from 'express';
+
+import { getMastery, getRecommendations } from '../controllers/conceptController';
+import { asyncHandler } from '../middleware/asyncHandler';
+import { authGuard } from '../middleware/auth';
 
 // Concept routes: mastery scores and recommendation feed.
 const router = Router();

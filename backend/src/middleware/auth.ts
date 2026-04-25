@@ -1,8 +1,9 @@
-import type { UserDto } from '@services/auth.service';
-import { getUserById } from '@services/auth.service';
-import { AppError } from '@utils/AppError';
-import { verifyToken } from '@utils/jwt';
 import { NextFunction, Request, RequestHandler, Response } from 'express';
+
+import type { UserDto } from '../services/auth.service';
+import { getUserById } from '../services/auth.service';
+import { AppError } from '../utils/AppError';
+import { verifyToken } from '../utils/jwt';
 
 // Auth middleware: resolves user from JWT and protects private routes.
 // Extend Express Request to carry the authenticated user object.

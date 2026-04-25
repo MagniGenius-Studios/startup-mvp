@@ -1,6 +1,5 @@
-import { getPrismaClient } from '@config/db';
-import { AppError } from '@utils/AppError';
-
+import { getPrismaClient } from '../config/db';
+import { AppError } from '../utils/AppError';
 import type { HintInput } from '../validators/hint.validators';
 import { generateExplainableFeedback } from './ai.service';
 import { evaluateSubmission } from './evaluation.service';

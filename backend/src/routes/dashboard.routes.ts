@@ -1,7 +1,8 @@
-import { getDashboard } from '@controllers/dashboardController';
-import { asyncHandler } from '@middleware/asyncHandler';
-import { authGuard } from '@middleware/auth';
 import { Router } from 'express';
+
+import { getDashboard } from '../controllers/dashboardController';
+import { asyncHandler } from '../middleware/asyncHandler';
+import { authGuard } from '../middleware/auth';
 
 // Dashboard routes: aggregate learner insights for home screen.
 const router = Router();

@@ -1,6 +1,7 @@
-import { LANGUAGE_LABELS, SUPPORTED_LANGUAGES } from '@constants/languages';
-import * as problemService from '@services/problem.service';
 import { Request, Response } from 'express';
+
+import { LANGUAGE_LABELS, SUPPORTED_LANGUAGES } from '../constants/languages';
+import * as problemService from '../services/problem.service';
 
 // Problem controller: language, track, and problem catalog endpoints.
 export const listLanguages = async (_req: Request, res: Response): Promise<void> => {

@@ -1,6 +1,5 @@
-import { getPrismaClient } from '@config/db';
-import { AppError } from '@utils/AppError';
-
+import { getPrismaClient } from '../config/db';
+import { AppError } from '../utils/AppError';
 import type { ExplainCodeInput } from '../validators/explain.validators';
 import {
     type CodeExplanation,

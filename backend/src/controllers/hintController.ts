@@ -1,6 +1,6 @@
-import * as hintService from '@services/hint.service';
 import { Request, Response } from 'express';
 
+import * as hintService from '../services/hint.service';
 import type { HintInput } from '../validators/hint.validators';
 
 // Handles POST /hint -> analyzes current code and returns concise AI guidance.

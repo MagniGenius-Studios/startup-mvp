@@ -1,7 +1,8 @@
-import { getPrismaClient } from '@config/db';
-import { LANGUAGE_LABELS, normalizeLanguage, SUPPORTED_LANGUAGES, type SupportedLanguage } from '@constants/languages';
 import type { Prisma } from '@prisma/client';
-import { AppError } from '@utils/AppError';
+
+import { getPrismaClient } from '../config/db';
+import { LANGUAGE_LABELS, normalizeLanguage, SUPPORTED_LANGUAGES, type SupportedLanguage } from '../constants/languages';
+import { AppError } from '../utils/AppError';
 
 // Problem catalog service: languages, tracks, and problem detail payloads.
 export type LanguageCodeMap = Record<SupportedLanguage, string>;

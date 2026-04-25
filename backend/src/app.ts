@@ -1,12 +1,13 @@
-import { env } from '@config/env';
-import { errorHandler } from '@middleware/errorHandler';
-import { notFoundHandler } from '@middleware/notFound';
-import routes from '@routes/index';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express, { json } from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
+
+import { env } from './config/env';
+import { errorHandler } from './middleware/errorHandler';
+import { notFoundHandler } from './middleware/notFound';
+import routes from './routes/index';
 
 // Express app factory: wires security, parsing, API routes, and global handlers.
 export const createApp = () => {

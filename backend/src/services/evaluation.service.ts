@@ -1,6 +1,6 @@
-import { type SupportedLanguage } from '@constants/languages';
 import type { Prisma } from '@prisma/client';
 
+import { type SupportedLanguage } from '../constants/languages';
 import { evaluateCorrectness } from './ai.service';
 
 // Evaluation service: deterministic correctness checks before AI explanation.

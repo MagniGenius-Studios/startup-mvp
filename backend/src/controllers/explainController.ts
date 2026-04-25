@@ -1,6 +1,6 @@
-import * as explainService from '@services/explain.service';
 import { Request, Response } from 'express';
 
+import * as explainService from '../services/explain.service';
 import type { ExplainCodeInput } from '../validators/explain.validators';
 
 // Handles POST /explain -> returns step-by-step code explanation for current problem.

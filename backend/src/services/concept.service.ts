@@ -1,4 +1,4 @@
-import { getPrismaClient } from '@config/db';
+import { getPrismaClient } from '../config/db';
 
 // Concept service: mastery scoring and personalized problem recommendations.
 export interface ConceptMasteryDto {

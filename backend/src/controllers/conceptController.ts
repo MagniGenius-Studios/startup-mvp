@@ -1,6 +1,7 @@
-import { requireUser } from '@middleware/auth';
-import { getRecommendedProblems, getUserConceptMastery } from '@services/concept.service';
 import { Request, Response } from 'express';
+
+import { requireUser } from '../middleware/auth';
+import { getRecommendedProblems, getUserConceptMastery } from '../services/concept.service';
 
 // Handles GET /concepts/mastery -> current user's concept scores.
 export const getMastery = async (req: Request, res: Response): Promise<void> => {

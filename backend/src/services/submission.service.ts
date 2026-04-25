@@ -1,8 +1,7 @@
-import { getPrismaClient } from '@config/db';
-import { normalizeLanguage } from '@constants/languages';
-import { AppError } from '@utils/AppError';
-import { isMissingProblemProgressStorageError } from '@utils/dbError';
-
+import { getPrismaClient } from '../config/db';
+import { normalizeLanguage } from '../constants/languages';
+import { AppError } from '../utils/AppError';
+import { isMissingProblemProgressStorageError } from '../utils/dbError';
 import type { SubmitCodeInput } from '../validators/submission.validators';
 import { generateExplainableFeedback } from './ai.service';
 import { updateConceptMastery } from './concept.service';

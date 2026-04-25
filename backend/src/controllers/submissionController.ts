@@ -1,7 +1,7 @@
-import { requireUser } from '@middleware/auth';
-import * as submissionService from '@services/submission.service';
 import { Request, Response } from 'express';
 
+import { requireUser } from '../middleware/auth';
+import * as submissionService from '../services/submission.service';
 import type {
   SubmissionProblemParamInput,
   SubmitCodeInput,

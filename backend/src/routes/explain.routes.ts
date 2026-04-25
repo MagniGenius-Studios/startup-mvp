@@ -1,9 +1,9 @@
-import { explainCode } from '@controllers/explainController';
-import { asyncHandler } from '@middleware/asyncHandler';
-import { authGuard } from '@middleware/auth';
-import { validateBody } from '@middleware/validate';
 import { Router } from 'express';
 
+import { explainCode } from '../controllers/explainController';
+import { asyncHandler } from '../middleware/asyncHandler';
+import { authGuard } from '../middleware/auth';
+import { validateBody } from '../middleware/validate';
 import { explainCodeSchema } from '../validators/explain.validators';
 
 // Explain routes: step-by-step code explanation endpoint.

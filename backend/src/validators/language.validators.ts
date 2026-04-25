@@ -1,5 +1,6 @@
-import { normalizeLanguage,SUPPORTED_LANGUAGES } from '@constants/languages';
 import { z } from 'zod';
+
+import { normalizeLanguage,SUPPORTED_LANGUAGES } from '../constants/languages';
 
 // Normalizes aliases (js/c++) before enforcing allowed language values.
 export const supportedLanguageSchema = z.preprocess(

@@ -1,5 +1,6 @@
-import { env } from '@config/env';
 import { sign, verify } from 'jsonwebtoken';
+
+import { env } from '../config/env';
 
 // JWT helpers for stateless auth cookies and Bearer tokens.
 export interface JwtPayload {

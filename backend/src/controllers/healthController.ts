@@ -1,5 +1,6 @@
-import { connectDatabase } from '@config/db';
 import { Request, Response } from 'express';
+
+import { connectDatabase } from '../config/db';
 
 type HealthStatus = {
   api: 'ok';

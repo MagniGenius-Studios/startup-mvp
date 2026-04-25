@@ -1,7 +1,7 @@
-import { getPrismaClient } from '@config/db';
 import { Prisma } from '@prisma/client';
-import { isMissingProblemProgressStorageError } from '@utils/dbError';
 
+import { getPrismaClient } from '../config/db';
+import { isMissingProblemProgressStorageError } from '../utils/dbError';
 import { type ConceptMasteryDto, getRecommendedProblems, getWeakConcepts, type RecommendedProblemDto } from './concept.service';
 import { PROBLEM_PROGRESS_STATUS, type ProblemProgressStatus } from './progress.service';
 import { getStreak } from './streak.service';

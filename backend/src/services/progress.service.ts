@@ -1,6 +1,7 @@
-import { getPrismaClient } from '@config/db';
 import { Prisma } from '@prisma/client';
-import { isMissingProblemProgressStorageError } from '@utils/dbError';
+
+import { getPrismaClient } from '../config/db';
+import { isMissingProblemProgressStorageError } from '../utils/dbError';
 
 // Progress service: stores and reads per-problem state for each user.
 export const PROBLEM_PROGRESS_STATUS = {

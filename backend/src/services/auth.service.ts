@@ -1,8 +1,7 @@
-import { getPrismaClient } from '@config/db';
-import { AppError } from '@utils/AppError';
-import { signToken } from '@utils/jwt';
-import { comparePassword, hashPassword } from '@utils/password';
-
+import { getPrismaClient } from '../config/db';
+import { AppError } from '../utils/AppError';
+import { signToken } from '../utils/jwt';
+import { comparePassword, hashPassword } from '../utils/password';
 import type { LoginInput, RegisterInput } from '../validators/auth.validators';
 
 // Auth service: user creation, credential verification, and token issuance.

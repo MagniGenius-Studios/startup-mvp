@@ -1,6 +1,7 @@
-import { AppError } from '@utils/AppError';
 import { NextFunction, Request, Response } from 'express';
 import { ZodError } from 'zod';
+
+import { AppError } from '../utils/AppError';
 
 // Centralized API error mapper for AppError, Zod errors, and unknown failures.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

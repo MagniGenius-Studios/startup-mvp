@@ -1,9 +1,9 @@
-import { getLatestSubmission, getSubmissionHistory, submitCode } from '@controllers/submissionController';
-import { asyncHandler } from '@middleware/asyncHandler';
-import { authGuard } from '@middleware/auth';
-import { validateBody, validateParams } from '@middleware/validate';
 import { Router } from 'express';
 
+import { getLatestSubmission, getSubmissionHistory, submitCode } from '../controllers/submissionController';
+import { asyncHandler } from '../middleware/asyncHandler';
+import { authGuard } from '../middleware/auth';
+import { validateBody, validateParams } from '../middleware/validate';
 import { submissionProblemParamSchema, submitCodeSchema } from '../validators/submission.validators';
 
 // Submission routes: create attempt, latest attempt, and attempt history.
