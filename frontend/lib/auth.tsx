@@ -11,7 +11,7 @@ import {
     useState,
 } from 'react'
 
-import { api, UNAUTHORIZED_EVENT } from '@/lib/api'
+import { apiClient, UNAUTHORIZED_EVENT } from '@/lib/api'
 
 interface User {
     id: string
@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         const checkAuth = async () => {
             try {
-                const { data } = await api.get('/auth/me')
+                const { data } = await apiClient.get('/auth/me')
                 setUser(data.user)
             } catch {
                 setUser(null)
@@ -68,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const login = useCallback(
         async (email: string, password: string) => {
             // API call: creates session and returns user payload.
-            const { data } = await api.post('/auth/login', { email, password })
+            const { data } = await apiClient.post('/auth/login', { email, password })
             setUser(data.user)
             router.push('/dashboard')
         },
@@ -78,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const register = useCallback(
         async (name: string, email: string, password: string) => {
             // API call: creates account and starts session.
-            const { data } = await api.post('/auth/register', { name, email, password })
+            const { data } = await apiClient.post('/auth/register', { name, email, password })
             setUser(data.user)
             router.push('/dashboard')
         },
@@ -88,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const logout = useCallback(async () => {
         try {
             // API call: clears server-side auth cookie.
-            await api.post('/auth/logout')
+            await apiClient.post('/auth/logout')
         } catch {
             // ignore logout errors
         }

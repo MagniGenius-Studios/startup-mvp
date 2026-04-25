@@ -12,13 +12,16 @@ import routes from './routes/index';
 // Express app factory: wires security, parsing, API routes, and global handlers.
 export const createApp = () => {
   const app = express();
-  const corsOrigin = env.frontendUrl ?? /^http:\/\/localhost:\d+$/;
 
   // Core middleware stack for headers, CORS, body parsing, cookies, and logs.
   app.use(helmet());
+  app.use((req, _res, next) => {
+    console.log('Origin:', req.headers.origin);
+    next();
+  });
   app.use(
     cors({
-      origin: corsOrigin,
+      origin: [env.frontendUrl, 'http://localhost:3000'],
       credentials: true,
     }),
   );

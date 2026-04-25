@@ -1,4 +1,4 @@
-import { api } from './api'
+import { apiClient } from './api'
 import type { Language } from './languages'
 
 // Explain API helper for "Explain My Code" panel.
@@ -17,7 +17,7 @@ export interface CodeExplanationResponse {
 
 export async function explainCode(params: ExplainCodeParams): Promise<CodeExplanationResponse> {
   // API call: returns step list, summary, and complexity estimates.
-  const { data } = await api.post<CodeExplanationResponse>('/explain', params, {
+  const { data } = await apiClient.post<CodeExplanationResponse>('/explain', params, {
     timeout: 20000,
   })
 

@@ -1,7 +1,15 @@
 import axios from 'axios'
 
 // Shared API client: central base URL, credential policy, and error normalization.
-const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'
+const configuredApi = process.env.NEXT_PUBLIC_API_URL?.trim()
+
+if (!configuredApi) {
+  throw new Error(
+    'NEXT_PUBLIC_API_URL is not set. Configure NEXT_PUBLIC_API_URL with your backend base URL (for example: https://startup-mvp-fmoj.onrender.com/api).',
+  )
+}
+
+export const API = configuredApi
 export const UNAUTHORIZED_EVENT = 'codebyte:unauthorized'
 
 type ApiValidationErrors = Record<string, string[] | undefined>
@@ -33,13 +41,13 @@ const isAuthEndpoint = (url: string | undefined) => {
 }
 
 // Axios instance used by all frontend data helpers.
-export const api = axios.create({
-  baseURL,
+export const apiClient = axios.create({
+  baseURL: API,
   timeout: 8000,
   withCredentials: true,
 })
 
-api.interceptors.response.use(
+apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = Number(error?.response?.status ?? 500)

@@ -6,12 +6,18 @@ import * as authService from '../services/auth.service';
 import type { LoginInput, RegisterInput } from '../validators/auth.validators';
 
 // Auth controller: registration, login, session lookup, and logout endpoints.
-const COOKIE_OPTIONS = {
+const isProduction = env.nodeEnv === 'production';
+
+const COOKIE_BASE_OPTIONS = {
   httpOnly: true,
-  secure: env.nodeEnv === 'production',
-  sameSite: 'lax' as const,
-  maxAge: env.authCookieMaxAgeMs,
+  secure: isProduction,
+  sameSite: isProduction ? ('none' as const) : ('lax' as const),
   path: '/',
+};
+
+const COOKIE_OPTIONS = {
+  ...COOKIE_BASE_OPTIONS,
+  maxAge: env.authCookieMaxAgeMs,
 };
 
 // Handles POST /auth/register.
@@ -50,6 +56,6 @@ export const getMe = (req: Request, res: Response): void => {
 
 // Handles POST /auth/logout by clearing auth cookie.
 export const logout = (_req: Request, res: Response): void => {
-  res.clearCookie('token', { path: '/' });
+  res.clearCookie('token', COOKIE_BASE_OPTIONS);
   res.status(200).json({ message: 'Logged out successfully' });
 };

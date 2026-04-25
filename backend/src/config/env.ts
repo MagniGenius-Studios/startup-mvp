@@ -10,7 +10,7 @@ const envSchema = z.object({
   DATABASE_URL: z.string().url(),
   JWT_SECRET: z.string().min(16, 'JWT_SECRET should be at least 16 characters'),
   GROQ_API_KEY: z.string().optional(),
-  FRONTEND_URL: z.string().url().optional(),
+  FRONTEND_URL: z.string().url().default('http://localhost:3000'),
   JSON_BODY_LIMIT: z.string().default('1mb'),
   HTTP_LOG_FORMAT: z.string().default('combined'),
   AUTH_COOKIE_MAX_AGE_MS: z.coerce.number().int().positive().default(24 * 60 * 60 * 1000),

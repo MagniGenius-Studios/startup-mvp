@@ -1,4 +1,4 @@
-import { api } from './api'
+import { apiClient } from './api'
 
 // Dashboard API contract shared between backend payload and frontend widgets.
 export interface RecentSubmission {
@@ -45,6 +45,6 @@ export interface DashboardData {
 
 export async function fetchDashboard(): Promise<DashboardData> {
   // API call: aggregated dashboard payload (stats + lists) in one request.
-  const { data } = await api.get<DashboardData>('/dashboard')
+  const { data } = await apiClient.get<DashboardData>('/dashboard')
   return data
 }

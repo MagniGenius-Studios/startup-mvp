@@ -1,4 +1,4 @@
-import { api } from './api'
+import { apiClient } from './api'
 import type { Language } from './languages'
 
 // Submission API helpers: submit code and fetch attempt history.
@@ -35,7 +35,7 @@ export interface SubmissionHistoryItem {
 }
 
 export async function submitCode(params: SubmitCodeParams): Promise<SubmitCodeResponse> {
-  const { data } = await api.post<SubmitCodeResponse>(
+  const { data } = await apiClient.post<SubmitCodeResponse>(
     '/submissions',
     params,
     {
@@ -49,12 +49,16 @@ export async function submitCode(params: SubmitCodeParams): Promise<SubmitCodeRe
 
 export async function fetchLatestSubmission(problemId: string): Promise<LatestSubmission | null> {
   // API call: latest completed submission for workspace hydration.
-  const { data } = await api.get<{ submission: LatestSubmission | null }>(`/submissions/${problemId}`)
+  const { data } = await apiClient.get<{ submission: LatestSubmission | null }>(
+    `/submissions/${encodeURIComponent(problemId)}`,
+  )
   return data.submission
 }
 
 export async function fetchSubmissionHistory(problemId: string): Promise<SubmissionHistoryItem[]> {
   // API call: recent attempts for mentor history timeline.
-  const { data } = await api.get<{ history: SubmissionHistoryItem[] }>(`/submissions/history/${problemId}`)
+  const { data } = await apiClient.get<{ history: SubmissionHistoryItem[] }>(
+    `/submissions/history/${encodeURIComponent(problemId)}`,
+  )
   return data.history
 }

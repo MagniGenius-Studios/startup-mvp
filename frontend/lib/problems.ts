@@ -1,5 +1,5 @@
 import type { LanguageCodeMap } from './languages'
-import { api } from './api'
+import { apiClient } from './api'
 
 // Problem API helpers used by learn and workspace pages.
 export interface ProblemSummary {
@@ -34,7 +34,7 @@ function normalizeId(id: string, label: string): string {
 export async function fetchProblemsByTrack(trackId: string): Promise<ProblemSummary[]> {
   const normalizedTrackId = normalizeId(trackId, 'Track ID')
   // API call: get ordered problem summaries for one track.
-  const { data } = await api.get<{ problems: ProblemSummary[] }>(
+  const { data } = await apiClient.get<{ problems: ProblemSummary[] }>(
     `/problems/${encodeURIComponent(normalizedTrackId)}`,
   )
   return data.problems
@@ -43,7 +43,7 @@ export async function fetchProblemsByTrack(trackId: string): Promise<ProblemSumm
 export async function fetchProblem(id: string): Promise<ProblemDetail> {
   const normalizedProblemId = normalizeId(id, 'Problem ID')
   // API call: get full problem payload including starter code map.
-  const { data } = await api.get<{ problem: ProblemDetail }>(
+  const { data } = await apiClient.get<{ problem: ProblemDetail }>(
     `/problems/detail/${encodeURIComponent(normalizedProblemId)}`,
   )
   return data.problem
