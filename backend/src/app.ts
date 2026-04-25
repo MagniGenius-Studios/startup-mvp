@@ -26,6 +26,13 @@ export const createApp = () => {
   app.use(cookieParser());
   app.use(morgan(env.httpLogFormat));
 
+  app.get('/', (req, res) => {
+    res.json({
+      status: 'ok',
+      message: 'CodeByte API is running',
+    });
+  });
+
   // Mount all API endpoints under /api.
   app.use('/api', routes);
 
