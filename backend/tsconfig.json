@@ -8,6 +8,7 @@
 
     "esModuleInterop": true,
     "moduleResolution": "node16",
+    "types": ["node"],
 
     "strict": false,                // 🔥 relax strict mode
     "skipLibCheck": true,           // 🔥 ignore lib errors

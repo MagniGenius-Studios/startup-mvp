@@ -537,17 +537,22 @@ function cleanJsonResponse(raw: string): string {
     return cleaned.trim();
 }
 
-function normalizeCodeExplanation(value: CodeExplanation): CodeExplanation {
-    const cleanedSteps = value.steps
+function normalizeCodeExplanation(value: Partial<CodeExplanation>): CodeExplanation {
+    const rawSteps = Array.isArray(value.steps) ? value.steps : [];
+    const cleanedSteps = rawSteps
         .map((step) => step.replace(/\s+/g, ' ').trim())
         .filter((step) => step.length > 0)
         .slice(0, 6);
 
+    const summary = typeof value.summary === 'string' ? value.summary : '';
+    const timeComplexity = typeof value.timeComplexity === 'string' ? value.timeComplexity : '';
+    const spaceComplexity = typeof value.spaceComplexity === 'string' ? value.spaceComplexity : '';
+
     return {
         steps: cleanedSteps.length > 0 ? cleanedSteps : EXPLAIN_CODE_FALLBACK.steps,
-        summary: value.summary.replace(/\s+/g, ' ').trim() || EXPLAIN_CODE_FALLBACK.summary,
-        timeComplexity: value.timeComplexity.replace(/\s+/g, ' ').trim() || EXPLAIN_CODE_FALLBACK.timeComplexity,
-        spaceComplexity: value.spaceComplexity.replace(/\s+/g, ' ').trim() || EXPLAIN_CODE_FALLBACK.spaceComplexity,
+        summary: summary.replace(/\s+/g, ' ').trim() || EXPLAIN_CODE_FALLBACK.summary,
+        timeComplexity: timeComplexity.replace(/\s+/g, ' ').trim() || EXPLAIN_CODE_FALLBACK.timeComplexity,
+        spaceComplexity: spaceComplexity.replace(/\s+/g, ' ').trim() || EXPLAIN_CODE_FALLBACK.spaceComplexity,
     };
 }
 
@@ -587,7 +592,15 @@ function parseResponse(raw: string): ExplainableFeedback | null {
             }
             return null;
         }
-        return validated.data;
+        const mistake = typeof validated.data.mistake === 'string' ? validated.data.mistake : '';
+        const concept = typeof validated.data.concept === 'string' ? validated.data.concept : '';
+        const improvement = typeof validated.data.improvement === 'string' ? validated.data.improvement : '';
+
+        if (!mistake || !concept || !improvement) {
+            return null;
+        }
+
+        return { mistake, concept, improvement };
     } catch {
         console.error('[AI] Failed to parse JSON:', raw.slice(0, 200));
         return null;
