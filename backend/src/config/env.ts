@@ -10,7 +10,7 @@ const envSchema = z.object({
   DATABASE_URL: z.string().url(),
   JWT_SECRET: z.string().min(16, 'JWT_SECRET should be at least 16 characters'),
   GROQ_API_KEY: z.string().optional(),
-  FRONTEND_URL: z.string().url().default('http://localhost:3000'),
+  FRONTEND_URL: z.string().url().optional(),
   JSON_BODY_LIMIT: z.string().default('1mb'),
   HTTP_LOG_FORMAT: z.string().default('combined'),
   AUTH_COOKIE_MAX_AGE_MS: z.coerce.number().int().positive().default(24 * 60 * 60 * 1000),
@@ -27,13 +27,22 @@ if (!parsed.success) {
   process.exit(1);
 }
 
+if (parsed.data.NODE_ENV === 'production' && !parsed.data.FRONTEND_URL) {
+  console.error('Invalid environment configuration:', {
+    FRONTEND_URL: ['FRONTEND_URL is required when NODE_ENV=production'],
+  });
+  process.exit(1);
+}
+
+const frontendUrl = (parsed.data.FRONTEND_URL ?? 'http://localhost:3000').replace(/\/+$/, '');
+
 export const env = {
   nodeEnv: parsed.data.NODE_ENV,
   port: parsed.data.PORT,
   databaseUrl: parsed.data.DATABASE_URL,
   jwtSecret: parsed.data.JWT_SECRET,
   groqApiKey: parsed.data.GROQ_API_KEY,
-  frontendUrl: parsed.data.FRONTEND_URL,
+  frontendUrl,
   jsonBodyLimit: parsed.data.JSON_BODY_LIMIT,
   httpLogFormat: parsed.data.HTTP_LOG_FORMAT,
   authCookieMaxAgeMs: parsed.data.AUTH_COOKIE_MAX_AGE_MS,
